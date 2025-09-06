@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>WebAR Atom</title>
 <style>
   .ar-button {
-    background-color: red !important;
+    background-color: blue !important;
     color: white !important;
     font-weight: bold;
     border: none;
@@ -40,6 +41,13 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
+  
+  // Android-specific optimizations
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.style.userSelect = 'none';
+  renderer.domElement.style.webkitUserSelect = 'none';
+  renderer.domElement.style.webkitTouchCallout = 'none';
+  
   document.body.appendChild(renderer.domElement);
 
   const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
@@ -149,33 +157,49 @@ function render(timestamp, frame) {
   renderer.render(scene,camera);
 }
 
-// Universal pointer-based AR gestures
+// Universal AR gestures with Android compatibility
 function addUniversalARGestures() {
-  let pointers = [];
+  let pointers = new Map();
+  let lastPointerPositions = new Map();
+  let isGesturing = false;
 
+  // Prevent default touch behaviors that might interfere
+  renderer.domElement.style.touchAction = 'none';
+  
+  // Pointer events (modern browsers)
   renderer.domElement.addEventListener('pointerdown', (e) => {
-    if(!atom) return;
-    pointers.push(e);
+    if(!atom || isGesturing) return;
+    e.preventDefault();
+    pointers.set(e.pointerId, e);
+    lastPointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    
+    if(pointers.size === 1) {
+      isGesturing = true;
+    }
   });
 
   renderer.domElement.addEventListener('pointermove', (e) => {
-    if(!atom) return;
-    for (let i=0;i<pointers.length;i++){
-      if(pointers[i].pointerId === e.pointerId){
-        pointers[i] = e;
-        break;
-      }
-    }
+    if(!atom || !isGesturing || !pointers.has(e.pointerId)) return;
+    e.preventDefault();
+    
+    const lastPos = lastPointerPositions.get(e.pointerId);
+    if(!lastPos) return;
+    
+    const deltaX = e.clientX - lastPos.x;
+    const deltaY = e.clientY - lastPos.y;
+    
+    lastPointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if(pointers.length === 1) {
-      // single finger -> move along XZ plane
-      const dx = e.movementX * 0.001;
-      const dz = e.movementY * 0.001;
+    if(pointers.size === 1) {
+      // Single finger -> move along XZ plane
+      const dx = deltaX * 0.001;
+      const dz = deltaY * 0.001;
       atom.position.x += dx;
       atom.position.z += dz;
-    } else if(pointers.length === 2) {
-      const dx = pointers[0].clientX - pointers[1].clientX;
-      const dy = pointers[0].clientY - pointers[1].clientY;
+    } else if(pointers.size === 2) {
+      const pointerArray = Array.from(pointers.values());
+      const dx = pointerArray[0].clientX - pointerArray[1].clientX;
+      const dy = pointerArray[0].clientY - pointerArray[1].clientY;
       const distance = Math.sqrt(dx*dx + dy*dy);
 
       if(atom.userData.startDistance === undefined){
@@ -185,19 +209,43 @@ function addUniversalARGestures() {
         atom.userData.startRotation = atom.rotation.y;
       }
 
-      // scale
+      // Scale
       const scaleFactor = distance / atom.userData.startDistance;
-      atom.scale.set(atom.userData.startScale*scaleFactor, atom.userData.startScale*scaleFactor, atom.userData.startScale*scaleFactor);
+      const newScale = atom.userData.startScale * scaleFactor;
+      atom.scale.setScalar(newScale);
 
-      // rotate
+      // Rotate
       const angle = Math.atan2(dy, dx);
       atom.rotation.y = atom.userData.startRotation + (angle - atom.userData.startAngle);
     }
   });
 
   renderer.domElement.addEventListener('pointerup', (e) => {
-    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
-    if(pointers.length < 2){
+    if(!pointers.has(e.pointerId)) return;
+    e.preventDefault();
+    pointers.delete(e.pointerId);
+    lastPointerPositions.delete(e.pointerId);
+    
+    if(pointers.size < 2){
+      delete atom.userData.startDistance;
+      delete atom.userData.startScale;
+      delete atom.userData.startAngle;
+      delete atom.userData.startRotation;
+    }
+    
+    if(pointers.size === 0) {
+      isGesturing = false;
+    }
+  });
+
+  renderer.domElement.addEventListener('pointercancel', (e) => {
+    if(!pointers.has(e.pointerId)) return;
+    e.preventDefault();
+    pointers.delete(e.pointerId);
+    lastPointerPositions.delete(e.pointerId);
+    
+    if(pointers.size === 0) {
+      isGesturing = false;
       delete atom.userData.startDistance;
       delete atom.userData.startScale;
       delete atom.userData.startAngle;
@@ -205,8 +253,106 @@ function addUniversalARGestures() {
     }
   });
 
-  renderer.domElement.addEventListener('pointercancel', (e) => {
-    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+  // Touch events fallback for Android
+  let touches = new Map();
+  let lastTouchPositions = new Map();
+
+  renderer.domElement.addEventListener('touchstart', (e) => {
+    if(!atom || isGesturing) return;
+    e.preventDefault();
+    
+    for(let touch of e.changedTouches) {
+      touches.set(touch.identifier, touch);
+      lastTouchPositions.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+    }
+    
+    if(touches.size === 1) {
+      isGesturing = true;
+    }
+  });
+
+  renderer.domElement.addEventListener('touchmove', (e) => {
+    if(!atom || !isGesturing) return;
+    e.preventDefault();
+    
+    for(let touch of e.changedTouches) {
+      if(!touches.has(touch.identifier)) continue;
+      
+      const lastPos = lastTouchPositions.get(touch.identifier);
+      if(!lastPos) continue;
+      
+      const deltaX = touch.clientX - lastPos.x;
+      const deltaY = touch.clientY - lastPos.y;
+      
+      lastTouchPositions.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+      touches.set(touch.identifier, touch);
+
+      if(touches.size === 1) {
+        // Single finger -> move along XZ plane
+        const dx = deltaX * 0.001;
+        const dz = deltaY * 0.001;
+        atom.position.x += dx;
+        atom.position.z += dz;
+      } else if(touches.size === 2) {
+        const touchArray = Array.from(touches.values());
+        const dx = touchArray[0].clientX - touchArray[1].clientX;
+        const dy = touchArray[0].clientY - touchArray[1].clientY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+
+        if(atom.userData.startDistance === undefined){
+          atom.userData.startDistance = distance;
+          atom.userData.startScale = atom.scale.x;
+          atom.userData.startAngle = Math.atan2(dy, dx);
+          atom.userData.startRotation = atom.rotation.y;
+        }
+
+        // Scale
+        const scaleFactor = distance / atom.userData.startDistance;
+        const newScale = atom.userData.startScale * scaleFactor;
+        atom.scale.setScalar(newScale);
+
+        // Rotate
+        const angle = Math.atan2(dy, dx);
+        atom.rotation.y = atom.userData.startRotation + (angle - atom.userData.startAngle);
+      }
+    }
+  });
+
+  renderer.domElement.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    
+    for(let touch of e.changedTouches) {
+      touches.delete(touch.identifier);
+      lastTouchPositions.delete(touch.identifier);
+    }
+    
+    if(touches.size < 2){
+      delete atom.userData.startDistance;
+      delete atom.userData.startScale;
+      delete atom.userData.startAngle;
+      delete atom.userData.startRotation;
+    }
+    
+    if(touches.size === 0) {
+      isGesturing = false;
+    }
+  });
+
+  renderer.domElement.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    
+    for(let touch of e.changedTouches) {
+      touches.delete(touch.identifier);
+      lastTouchPositions.delete(touch.identifier);
+    }
+    
+    if(touches.size === 0) {
+      isGesturing = false;
+      delete atom.userData.startDistance;
+      delete atom.userData.startScale;
+      delete atom.userData.startAngle;
+      delete atom.userData.startRotation;
+    }
   });
 }
 </script>
