@@ -28,11 +28,21 @@ import { ARButton } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/js
 
 let camera, scene, renderer;
 let reticle, controller;
-let hitTestSource = null;
-let hitTestSourceRequested = false;
+let hitTestSource = null, hitTestSourceRequested = false;
 let atom = null;
 let electrons = [];
-let selected = false;
+let raycaster = new THREE.Raycaster();
+let tempMatrix = new THREE.Matrix4();
+
+let selected = null;
+let offset = new THREE.Vector3();
+
+// For pinch gestures
+let pointers = [];
+let startDistance = 0;
+let startScale = 1;
+let startAngle = 0;
+let lastRotation = 0;
 
 init();
 animate();
@@ -62,11 +72,16 @@ function init() {
   reticle.visible = false;
   scene.add(reticle);
 
-  // Controller
+  // Controller for tap/select
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelectStart);
   controller.addEventListener("selectend", onSelectEnd);
   scene.add(controller);
+
+  renderer.domElement.addEventListener("pointerdown", onPointerDown);
+  renderer.domElement.addEventListener("pointermove", onPointerMove);
+  renderer.domElement.addEventListener("pointerup", onPointerUp);
+  renderer.domElement.addEventListener("pointercancel", onPointerUp);
 }
 
 // Atom model
@@ -78,12 +93,13 @@ function createAtom() {
   const neutronMaterial = new THREE.MeshStandardMaterial({ color:0x0000ff });
 
   for(let i=0;i<8;i++){
-    const material = i%2===0 ? protonMaterial : neutronMaterial;
+    const material = i%2===0?protonMaterial:neutronMaterial;
     const particle = new THREE.Mesh(nucleusGeometry, material);
-    particle.position.set((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1);
+    particle.position.set((Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1);
     group.add(particle);
   }
 
+  // Electrons
   const electronGeometry = new THREE.SphereGeometry(0.02,16,16);
   const electronMaterial = new THREE.MeshStandardMaterial({ color:0x00ff00 });
   for(let i=0;i<3;i++){
@@ -96,33 +112,83 @@ function createAtom() {
   return group;
 }
 
-// Select atom or place it
-function onSelectStart(){
+// Controller select events
+function onSelectStart(event){
   if(!atom && reticle.visible){
     atom = createAtom();
     atom.position.setFromMatrixPosition(reticle.matrix);
     scene.add(atom);
     reticle.visible = false;
   } else if(atom){
-    selected = true;
+    // Select the atom for dragging
+    selected = atom;
+    offset.copy(atom.position);
   }
 }
 
-function onSelectEnd(){
-  selected = false;
+function onSelectEnd(event){
+  selected = null;
 }
 
-// Animate
+// Pointer events for pinch/rotate gestures
+function onPointerDown(e){
+  if(!atom) return;
+  pointers.push(e);
+
+  if(pointers.length === 2){
+    const dx = pointers[0].clientX - pointers[1].clientX;
+    const dy = pointers[0].clientY - pointers[1].clientY;
+    startDistance = Math.hypot(dx,dy);
+    startScale = atom.scale.x;
+
+    startAngle = Math.atan2(dy,dx);
+    lastRotation = atom.rotation.y;
+  }
+}
+
+function onPointerMove(e){
+  if(!atom) return;
+  for(let i=0;i<pointers.length;i++){
+    if(pointers[i].pointerId===e.pointerId) pointers[i]=e;
+  }
+
+  if(pointers.length===2){
+    const dx = pointers[0].clientX - pointers[1].clientX;
+    const dy = pointers[0].clientY - pointers[1].clientY;
+    const distance = Math.hypot(dx,dy);
+    const scale = (distance/startDistance)*startScale;
+    atom.scale.set(scale, scale, scale);
+
+    const angle = Math.atan2(dy,dx);
+    atom.rotation.y = lastRotation + (angle-startAngle);
+  }
+}
+
+function onPointerUp(e){
+  pointers = pointers.filter(p=>p.pointerId!==e.pointerId);
+}
+
+// Animate electrons
 function animate() {
   renderer.setAnimationLoop(render);
 }
 
 function render(timestamp, frame){
+  if(atom){
+    electrons.forEach(e=>{
+      e.userData.angle += 0.02;
+      e.position.set(
+        Math.cos(e.userData.angle)*e.userData.radius,
+        0,
+        Math.sin(e.userData.angle)*e.userData.radius
+      );
+    });
+  }
+
   if(frame){
     const referenceSpace = renderer.xr.getReferenceSpace();
     const session = renderer.xr.getSession();
 
-    // Hit test for reticle placement
     if(!hitTestSourceRequested){
       session.requestReferenceSpace("viewer").then(refSpace=>{
         session.requestHitTestSource({ space: refSpace }).then(source=>{
@@ -137,43 +203,22 @@ function render(timestamp, frame){
     }
 
     if(hitTestSource && !atom){
-      const hitResults = frame.getHitTestResults(hitTestSource);
-      if(hitResults.length){
-        const hit = hitResults[0];
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if(hitTestResults.length){
+        const hit = hitTestResults[0];
         const pose = hit.getPose(referenceSpace);
         reticle.visible = true;
         reticle.matrix.fromArray(pose.transform.matrix);
       } else reticle.visible = false;
     }
 
-    // Move selected atom along the AR plane
-    if(selected && atom){
-      const viewerPose = frame.getViewerPose(referenceSpace);
-      if(viewerPose){
-        const rayOrigin = new THREE.Vector3().fromArray(viewerPose.transform.position.toArray());
-        const rayDirection = new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().fromArray(viewerPose.transform.orientation.toArray()));
-
-        // Perform a hit test along this ray
-        const hits = frame.getHitTestResults(hitTestSource);
-        if(hits.length){
-          const hit = hits[0];
-          const pose = hit.getPose(referenceSpace);
-          atom.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
-        }
-      }
+    // Move selected atom with controller
+    if(selected){
+      const xrCamera = renderer.xr.getCamera(camera);
+      const direction = new THREE.Vector3(0,0,-1).applyMatrix4(xrCamera.matrixWorld);
+      const position = new THREE.Vector3().setFromMatrixPosition(xrCamera.matrixWorld).add(direction.multiplyScalar(0.5));
+      selected.position.copy(position);
     }
-  }
-
-  // Animate electrons
-  if(atom){
-    electrons.forEach(e=>{
-      e.userData.angle += 0.02;
-      e.position.set(
-        Math.cos(e.userData.angle)*e.userData.radius,
-        0,
-        Math.sin(e.userData.angle)*e.userData.radius
-      );
-    });
   }
 
   renderer.render(scene, camera);
