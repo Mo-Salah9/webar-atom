@@ -25,7 +25,6 @@
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 import { ARButton } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/ARButton.js";
-import { HandModelFactory } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/HandModelFactory.js";
 
 let camera, scene, renderer;
 let reticle, controller, atom;
@@ -195,12 +194,17 @@ function setupWebXRGestures() {
     atom.scale.setScalar(scale);
   });
 
-  // Hand tracking support
-  const handModelFactory = new HandModelFactory();
+  // Hand tracking support (simplified)
   const hand1 = renderer.xr.getHand(0);
   const hand2 = renderer.xr.getHand(1);
   
   if (hand1) {
+    // Create simple hand representation
+    const handGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+    const handMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 });
+    const handMesh = new THREE.Mesh(handGeometry, handMaterial);
+    hand1.add(handMesh);
+
     hand1.addEventListener('pinchstart', (event) => {
       if (!atom) return;
       grabStartScale = atom.scale.x;
@@ -234,6 +238,12 @@ function setupWebXRGestures() {
   }
 
   if (hand2) {
+    // Create simple hand representation
+    const handGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+    const handMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 });
+    const handMesh = new THREE.Mesh(handGeometry, handMaterial);
+    hand2.add(handMesh);
+
     hand2.addEventListener('pinchstart', (event) => {
       if (!atom) return;
       grabStartScale = atom.scale.x;
