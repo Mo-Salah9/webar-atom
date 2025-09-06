@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WebAR Atom</title>
+<title>WebAR Atom - Android Compatible</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
   .ar-button {
-    background-color: green !important;
+    background-color: blue !important;
     color: white !important;
     font-weight: bold;
     border: none;
@@ -18,9 +19,15 @@
     transform: translateX(-50%);
     z-index: 10;
   }
+  
+  body {
+    margin: 0;
+    overflow: hidden;
+    touch-action: none; /* Prevent default touch behaviors */
+  }
 </style>
 </head>
-<body style="margin:0; overflow:hidden;">
+<body>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 import { ARButton } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/ARButton.js";
@@ -30,11 +37,12 @@ let reticle, controller, atom;
 let hitTestSource = null, hitTestSourceRequested = false;
 let electrons = [];
 
-// Gesture state
+// Improved gesture state
 let isMoving = false;
 let startX = 0, startY = 0;
 let startScale = 1, startDistance = 0;
 let startAngle = 0, lastRotation = 0;
+let lastTouchTime = 0;
 
 init();
 animate();
@@ -69,7 +77,7 @@ function init() {
   controller.addEventListener('select', onSelect);
   scene.add(controller);
 
-  // AR-compatible gestures
+  // Improved AR gestures
   addARGestures();
 }
 
@@ -155,53 +163,134 @@ function render(timestamp, frame) {
   renderer.render(scene,camera);
 }
 
-// AR Gestures using screen space
+// Improved AR Gestures with better Android support
 function addARGestures(){
-  renderer.domElement.addEventListener('touchstart', (e)=>{
+  let touchCache = [];
+  
+  // Helper function to get distance between two touches
+  function getDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  
+  // Helper function to get angle between two touches
+  function getAngle(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.atan2(dy, dx);
+  }
+
+  renderer.domElement.addEventListener('touchstart', (e) => {
+    e.preventDefault();
     if(!atom) return;
+    
+    // Clear cache and add current touches
+    touchCache = [];
+    for(let i = 0; i < e.touches.length; i++) {
+      touchCache.push({
+        id: e.touches[i].identifier,
+        clientX: e.touches[i].clientX,
+        clientY: e.touches[i].clientY
+      });
+    }
+    
+    lastTouchTime = Date.now();
+    
     if(e.touches.length === 1){
       isMoving = true;
-      startX = e.touches[0].pageX;
-      startY = e.touches[0].pageY;
-    } else if(e.touches.length ===2){
-      isMoving=false;
-      const dx = e.touches[0].pageX - e.touches[1].pageX;
-      const dy = e.touches[0].pageY - e.touches[1].pageY;
-      startDistance = Math.sqrt(dx*dx + dy*dy);
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    } else if(e.touches.length === 2){
+      isMoving = false;
+      startDistance = getDistance(touchCache[0], touchCache[1]);
       startScale = atom.scale.x;
-      startAngle = Math.atan2(dy,dx);
+      startAngle = getAngle(touchCache[0], touchCache[1]);
       lastRotation = atom.rotation.y;
     }
-  });
+  }, { passive: false });
 
-  renderer.domElement.addEventListener('touchmove',(e)=>{
-    if(!atom) return;
+  renderer.domElement.addEventListener('touchmove', (e) => {
     e.preventDefault();
-
-    if(e.touches.length===1 && isMoving){
-      const dx = e.touches[0].pageX - startX;
-      const dy = e.touches[0].pageY - startY;
-
-      // convert screen delta to AR world
-      const factor = 0.001; 
-      atom.position.x += dx*factor;
-      atom.position.z += dy*factor;
-
-      startX = e.touches[0].pageX;
-      startY = e.touches[0].pageY;
-    } else if(e.touches.length===2){
-      const dx = e.touches[0].pageX - e.touches[1].pageX;
-      const dy = e.touches[0].pageY - e.touches[1].pageY;
-      const distance = Math.sqrt(dx*dx + dy*dy);
-      atom.scale.set(startScale*(distance/startDistance), startScale*(distance/startDistance), startScale*(distance/startDistance));
-
-      const angle = Math.atan2(dy,dx);
-      atom.rotation.y = lastRotation + (angle - startAngle);
+    if(!atom) return;
+    
+    // Throttle touch events for better performance on Android
+    const now = Date.now();
+    if(now - lastTouchTime < 16) return; // ~60fps
+    lastTouchTime = now;
+    
+    // Update touch cache
+    for(let i = 0; i < e.touches.length; i++) {
+      const touch = e.touches[i];
+      const cacheIndex = touchCache.findIndex(t => t.id === touch.identifier);
+      if(cacheIndex >= 0) {
+        touchCache[cacheIndex].clientX = touch.clientX;
+        touchCache[cacheIndex].clientY = touch.clientY;
+      }
     }
-  }, {passive:false});
 
-  renderer.domElement.addEventListener('touchend', (e)=>{
-    isMoving=false;
+    if(e.touches.length === 1 && isMoving && touchCache.length >= 1){
+      const dx = touchCache[0].clientX - startX;
+      const dy = touchCache[0].clientY - startY;
+
+      // Improved conversion from screen space to world space
+      const factor = 0.002; // Increased sensitivity
+      const worldDx = dx * factor;
+      const worldDz = dy * factor;
+      
+      atom.position.x += worldDx;
+      atom.position.z += worldDz;
+
+      startX = touchCache[0].clientX;
+      startY = touchCache[0].clientY;
+      
+    } else if(e.touches.length === 2 && touchCache.length >= 2){
+      // Scale gesture
+      const currentDistance = getDistance(touchCache[0], touchCache[1]);
+      const scaleRatio = currentDistance / startDistance;
+      const newScale = Math.max(0.1, Math.min(3.0, startScale * scaleRatio)); // Limit scale
+      atom.scale.setScalar(newScale);
+
+      // Rotation gesture
+      const currentAngle = getAngle(touchCache[0], touchCache[1]);
+      const angleDelta = currentAngle - startAngle;
+      atom.rotation.y = lastRotation + angleDelta;
+    }
+  }, { passive: false });
+
+  renderer.domElement.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    
+    // Remove ended touches from cache
+    const remainingTouches = [];
+    for(let i = 0; i < e.touches.length; i++) {
+      remainingTouches.push({
+        id: e.touches[i].identifier,
+        clientX: e.touches[i].clientX,
+        clientY: e.touches[i].clientY
+      });
+    }
+    touchCache = remainingTouches;
+    
+    if(e.touches.length === 0) {
+      isMoving = false;
+    } else if(e.touches.length === 1 && touchCache.length >= 1) {
+      // Switching from two-finger to one-finger
+      isMoving = true;
+      startX = touchCache[0].clientX;
+      startY = touchCache[0].clientY;
+    }
+  }, { passive: false });
+
+  renderer.domElement.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    isMoving = false;
+    touchCache = [];
+  }, { passive: false });
+  
+  // Prevent context menu on long press
+  renderer.domElement.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
   });
 }
 </script>
