@@ -5,7 +5,7 @@
 <title>WebAR Atom</title>
 <style>
   .ar-button {
-    background-color: blue !important;
+    background-color: red !important;
     color: white !important;
     font-weight: bold;
     border: none;
@@ -30,12 +30,6 @@ let reticle, controller, atom;
 let hitTestSource = null, hitTestSourceRequested = false;
 let electrons = [];
 
-// Gesture state
-let isMoving = false;
-let startX = 0, startY = 0;
-let startScale = 1, startDistance = 0;
-let startAngle = 0, lastRotation = 0;
-
 init();
 animate();
 
@@ -55,7 +49,7 @@ function init() {
   const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
   scene.add(light);
 
-  // Reticle for placement
+  // Reticle
   reticle = new THREE.Mesh(
     new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI/2),
     new THREE.MeshBasicMaterial({ color: 0x00ff00 })
@@ -69,8 +63,8 @@ function init() {
   controller.addEventListener('select', onSelect);
   scene.add(controller);
 
-  // AR-compatible gestures
-  addARGestures();
+  // Universal AR gestures
+  addUniversalARGestures();
 }
 
 function createAtom() {
@@ -155,53 +149,64 @@ function render(timestamp, frame) {
   renderer.render(scene,camera);
 }
 
-// AR Gestures using screen space
-function addARGestures(){
-  renderer.domElement.addEventListener('touchstart', (e)=>{
+// Universal pointer-based AR gestures
+function addUniversalARGestures() {
+  let pointers = [];
+
+  renderer.domElement.addEventListener('pointerdown', (e) => {
     if(!atom) return;
-    if(e.touches.length === 1){
-      isMoving = true;
-      startX = e.touches[0].pageX;
-      startY = e.touches[0].pageY;
-    } else if(e.touches.length ===2){
-      isMoving=false;
-      const dx = e.touches[0].pageX - e.touches[1].pageX;
-      const dy = e.touches[0].pageY - e.touches[1].pageY;
-      startDistance = Math.sqrt(dx*dx + dy*dy);
-      startScale = atom.scale.x;
-      startAngle = Math.atan2(dy,dx);
-      lastRotation = atom.rotation.y;
+    pointers.push(e);
+  });
+
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if(!atom) return;
+    for (let i=0;i<pointers.length;i++){
+      if(pointers[i].pointerId === e.pointerId){
+        pointers[i] = e;
+        break;
+      }
+    }
+
+    if(pointers.length === 1) {
+      // single finger -> move along XZ plane
+      const dx = e.movementX * 0.001;
+      const dz = e.movementY * 0.001;
+      atom.position.x += dx;
+      atom.position.z += dz;
+    } else if(pointers.length === 2) {
+      const dx = pointers[0].clientX - pointers[1].clientX;
+      const dy = pointers[0].clientY - pointers[1].clientY;
+      const distance = Math.sqrt(dx*dx + dy*dy);
+
+      if(atom.userData.startDistance === undefined){
+        atom.userData.startDistance = distance;
+        atom.userData.startScale = atom.scale.x;
+        atom.userData.startAngle = Math.atan2(dy, dx);
+        atom.userData.startRotation = atom.rotation.y;
+      }
+
+      // scale
+      const scaleFactor = distance / atom.userData.startDistance;
+      atom.scale.set(atom.userData.startScale*scaleFactor, atom.userData.startScale*scaleFactor, atom.userData.startScale*scaleFactor);
+
+      // rotate
+      const angle = Math.atan2(dy, dx);
+      atom.rotation.y = atom.userData.startRotation + (angle - atom.userData.startAngle);
     }
   });
 
-  renderer.domElement.addEventListener('touchmove',(e)=>{
-    if(!atom) return;
-    e.preventDefault();
-
-    if(e.touches.length===1 && isMoving){
-      const dx = e.touches[0].pageX - startX;
-      const dy = e.touches[0].pageY - startY;
-
-      // convert screen delta to AR world
-      const factor = 0.001; 
-      atom.position.x += dx*factor;
-      atom.position.z += dy*factor;
-
-      startX = e.touches[0].pageX;
-      startY = e.touches[0].pageY;
-    } else if(e.touches.length===2){
-      const dx = e.touches[0].pageX - e.touches[1].pageX;
-      const dy = e.touches[0].pageY - e.touches[1].pageY;
-      const distance = Math.sqrt(dx*dx + dy*dy);
-      atom.scale.set(startScale*(distance/startDistance), startScale*(distance/startDistance), startScale*(distance/startDistance));
-
-      const angle = Math.atan2(dy,dx);
-      atom.rotation.y = lastRotation + (angle - startAngle);
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+    if(pointers.length < 2){
+      delete atom.userData.startDistance;
+      delete atom.userData.startScale;
+      delete atom.userData.startAngle;
+      delete atom.userData.startRotation;
     }
-  }, {passive:false});
+  });
 
-  renderer.domElement.addEventListener('touchend', (e)=>{
-    isMoving=false;
+  renderer.domElement.addEventListener('pointercancel', (e) => {
+    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
   });
 }
 </script>
