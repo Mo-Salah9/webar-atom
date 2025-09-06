@@ -25,6 +25,7 @@
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 import { ARButton } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/ARButton.js";
+import { HandModelFactory } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/HandModelFactory.js";
 
 let camera, scene, renderer;
 let reticle, controller, atom;
@@ -50,7 +51,9 @@ function init() {
   
   document.body.appendChild(renderer.domElement);
 
-  const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+  const arButton = ARButton.createButton(renderer, { 
+    requiredFeatures: ['hit-test', 'hand-tracking'] 
+  });
   arButton.classList.add("ar-button");
   document.body.appendChild(arButton);
 
@@ -71,8 +74,8 @@ function init() {
   controller.addEventListener('select', onSelect);
   scene.add(controller);
 
-  // Universal AR gestures
-  addUniversalARGestures();
+  // WebXR native gestures
+  setupWebXRGestures();
 }
 
 function createAtom() {
@@ -157,203 +160,129 @@ function render(timestamp, frame) {
   renderer.render(scene,camera);
 }
 
-// Universal AR gestures with Android compatibility
-function addUniversalARGestures() {
-  let pointers = new Map();
-  let lastPointerPositions = new Map();
-  let isGesturing = false;
+// WebXR native gesture handling
+function setupWebXRGestures() {
+  let isGrabbing = false;
+  let grabStartPosition = new THREE.Vector3();
+  let grabStartAtomPosition = new THREE.Vector3();
+  let grabStartScale = 1;
+  let grabStartRotation = 0;
 
-  // Prevent default touch behaviors that might interfere
-  renderer.domElement.style.touchAction = 'none';
+  // Enhanced controller with gesture support
+  controller.addEventListener('selectstart', (event) => {
+    if (!atom) return;
+    
+    isGrabbing = true;
+    grabStartPosition.copy(controller.position);
+    grabStartAtomPosition.copy(atom.position);
+    grabStartScale = atom.scale.x;
+    grabStartRotation = atom.rotation.y;
+  });
+
+  controller.addEventListener('selectend', (event) => {
+    isGrabbing = false;
+  });
+
+  // Controller-based scaling with secondary button
+  controller.addEventListener('squeezestart', (event) => {
+    if (!atom) return;
+    grabStartScale = atom.scale.x;
+  });
+
+  controller.addEventListener('squeeze', (event) => {
+    if (!atom) return;
+    const scale = Math.max(0.1, Math.min(3.0, grabStartScale * (1 + event.value * 0.5)));
+    atom.scale.setScalar(scale);
+  });
+
+  // Hand tracking support
+  const handModelFactory = new HandModelFactory();
+  const hand1 = renderer.xr.getHand(0);
+  const hand2 = renderer.xr.getHand(1);
   
-  // Pointer events (modern browsers)
-  renderer.domElement.addEventListener('pointerdown', (e) => {
-    if(!atom || isGesturing) return;
-    e.preventDefault();
-    pointers.set(e.pointerId, e);
-    lastPointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    
-    if(pointers.size === 1) {
-      isGesturing = true;
-    }
-  });
+  if (hand1) {
+    hand1.addEventListener('pinchstart', (event) => {
+      if (!atom) return;
+      grabStartScale = atom.scale.x;
+    });
 
-  renderer.domElement.addEventListener('pointermove', (e) => {
-    if(!atom || !isGesturing || !pointers.has(e.pointerId)) return;
-    e.preventDefault();
-    
-    const lastPos = lastPointerPositions.get(e.pointerId);
-    if(!lastPos) return;
-    
-    const deltaX = e.clientX - lastPos.x;
-    const deltaY = e.clientY - lastPos.y;
-    
-    lastPointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    hand1.addEventListener('pinch', (event) => {
+      if (!atom) return;
+      const scale = Math.max(0.1, Math.min(3.0, grabStartScale * event.scale));
+      atom.scale.setScalar(scale);
+    });
 
-    if(pointers.size === 1) {
-      // Single finger -> move along XZ plane
-      const dx = deltaX * 0.001;
-      const dz = deltaY * 0.001;
-      atom.position.x += dx;
-      atom.position.z += dz;
-    } else if(pointers.size === 2) {
-      const pointerArray = Array.from(pointers.values());
-      const dx = pointerArray[0].clientX - pointerArray[1].clientX;
-      const dy = pointerArray[0].clientY - pointerArray[1].clientY;
-      const distance = Math.sqrt(dx*dx + dy*dy);
+    hand1.addEventListener('grabstart', (event) => {
+      if (!atom) return;
+      isGrabbing = true;
+      grabStartPosition.copy(hand1.position);
+      grabStartAtomPosition.copy(atom.position);
+    });
 
-      if(atom.userData.startDistance === undefined){
-        atom.userData.startDistance = distance;
-        atom.userData.startScale = atom.scale.x;
-        atom.userData.startAngle = Math.atan2(dy, dx);
-        atom.userData.startRotation = atom.rotation.y;
-      }
-
-      // Scale
-      const scaleFactor = distance / atom.userData.startDistance;
-      const newScale = atom.userData.startScale * scaleFactor;
-      atom.scale.setScalar(newScale);
-
-      // Rotate
-      const angle = Math.atan2(dy, dx);
-      atom.rotation.y = atom.userData.startRotation + (angle - atom.userData.startAngle);
-    }
-  });
-
-  renderer.domElement.addEventListener('pointerup', (e) => {
-    if(!pointers.has(e.pointerId)) return;
-    e.preventDefault();
-    pointers.delete(e.pointerId);
-    lastPointerPositions.delete(e.pointerId);
-    
-    if(pointers.size < 2){
-      delete atom.userData.startDistance;
-      delete atom.userData.startScale;
-      delete atom.userData.startAngle;
-      delete atom.userData.startRotation;
-    }
-    
-    if(pointers.size === 0) {
-      isGesturing = false;
-    }
-  });
-
-  renderer.domElement.addEventListener('pointercancel', (e) => {
-    if(!pointers.has(e.pointerId)) return;
-    e.preventDefault();
-    pointers.delete(e.pointerId);
-    lastPointerPositions.delete(e.pointerId);
-    
-    if(pointers.size === 0) {
-      isGesturing = false;
-      delete atom.userData.startDistance;
-      delete atom.userData.startScale;
-      delete atom.userData.startAngle;
-      delete atom.userData.startRotation;
-    }
-  });
-
-  // Touch events fallback for Android
-  let touches = new Map();
-  let lastTouchPositions = new Map();
-
-  renderer.domElement.addEventListener('touchstart', (e) => {
-    if(!atom || isGesturing) return;
-    e.preventDefault();
-    
-    for(let touch of e.changedTouches) {
-      touches.set(touch.identifier, touch);
-      lastTouchPositions.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
-    }
-    
-    if(touches.size === 1) {
-      isGesturing = true;
-    }
-  });
-
-  renderer.domElement.addEventListener('touchmove', (e) => {
-    if(!atom || !isGesturing) return;
-    e.preventDefault();
-    
-    for(let touch of e.changedTouches) {
-      if(!touches.has(touch.identifier)) continue;
+    hand1.addEventListener('grab', (event) => {
+      if (!atom || !isGrabbing) return;
       
-      const lastPos = lastTouchPositions.get(touch.identifier);
-      if(!lastPos) continue;
+      const delta = new THREE.Vector3().subVectors(hand1.position, grabStartPosition);
+      atom.position.copy(grabStartAtomPosition).add(delta);
+    });
+
+    hand1.addEventListener('grabend', (event) => {
+      isGrabbing = false;
+    });
+
+    scene.add(hand1);
+  }
+
+  if (hand2) {
+    hand2.addEventListener('pinchstart', (event) => {
+      if (!atom) return;
+      grabStartScale = atom.scale.x;
+    });
+
+    hand2.addEventListener('pinch', (event) => {
+      if (!atom) return;
+      const scale = Math.max(0.1, Math.min(3.0, grabStartScale * event.scale));
+      atom.scale.setScalar(scale);
+    });
+
+    hand2.addEventListener('grabstart', (event) => {
+      if (!atom) return;
+      isGrabbing = true;
+      grabStartPosition.copy(hand2.position);
+      grabStartAtomPosition.copy(atom.position);
+    });
+
+    hand2.addEventListener('grab', (event) => {
+      if (!atom || !isGrabbing) return;
       
-      const deltaX = touch.clientX - lastPos.x;
-      const deltaY = touch.clientY - lastPos.y;
-      
-      lastTouchPositions.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
-      touches.set(touch.identifier, touch);
+      const delta = new THREE.Vector3().subVectors(hand2.position, grabStartPosition);
+      atom.position.copy(grabStartAtomPosition).add(delta);
+    });
 
-      if(touches.size === 1) {
-        // Single finger -> move along XZ plane
-        const dx = deltaX * 0.001;
-        const dz = deltaY * 0.001;
-        atom.position.x += dx;
-        atom.position.z += dz;
-      } else if(touches.size === 2) {
-        const touchArray = Array.from(touches.values());
-        const dx = touchArray[0].clientX - touchArray[1].clientX;
-        const dy = touchArray[0].clientY - touchArray[1].clientY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
+    hand2.addEventListener('grabend', (event) => {
+      isGrabbing = false;
+    });
 
-        if(atom.userData.startDistance === undefined){
-          atom.userData.startDistance = distance;
-          atom.userData.startScale = atom.scale.x;
-          atom.userData.startAngle = Math.atan2(dy, dx);
-          atom.userData.startRotation = atom.rotation.y;
-        }
+    scene.add(hand2);
+  }
 
-        // Scale
-        const scaleFactor = distance / atom.userData.startDistance;
-        const newScale = atom.userData.startScale * scaleFactor;
-        atom.scale.setScalar(newScale);
+  // Update function for controller-based gestures
+  function updateGestures() {
+    if (!atom || !isGrabbing) return;
 
-        // Rotate
-        const angle = Math.atan2(dy, dx);
-        atom.rotation.y = atom.userData.startRotation + (angle - atom.userData.startAngle);
-      }
+    // Controller-based movement
+    if (controller && isGrabbing) {
+      const delta = new THREE.Vector3().subVectors(controller.position, grabStartPosition);
+      atom.position.copy(grabStartAtomPosition).add(delta.multiplyScalar(2)); // Amplify movement
     }
-  });
+  }
 
-  renderer.domElement.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    
-    for(let touch of e.changedTouches) {
-      touches.delete(touch.identifier);
-      lastTouchPositions.delete(touch.identifier);
-    }
-    
-    if(touches.size < 2){
-      delete atom.userData.startDistance;
-      delete atom.userData.startScale;
-      delete atom.userData.startAngle;
-      delete atom.userData.startRotation;
-    }
-    
-    if(touches.size === 0) {
-      isGesturing = false;
-    }
-  });
-
-  renderer.domElement.addEventListener('touchcancel', (e) => {
-    e.preventDefault();
-    
-    for(let touch of e.changedTouches) {
-      touches.delete(touch.identifier);
-      lastTouchPositions.delete(touch.identifier);
-    }
-    
-    if(touches.size === 0) {
-      isGesturing = false;
-      delete atom.userData.startDistance;
-      delete atom.userData.startScale;
-      delete atom.userData.startAngle;
-      delete atom.userData.startRotation;
-    }
-  });
+  // Add to render loop
+  const originalRender = render;
+  render = function(timestamp, frame) {
+    updateGestures();
+    return originalRender(timestamp, frame);
+  };
 }
 </script>
 </body>
