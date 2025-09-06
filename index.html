@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WebAR Atom - Android Compatible</title>
+<title>WebAR Atom - WebXR Input Compatible</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
   .ar-button {
-    background-color: blue !important;
+    background-color: red !important;
     color: white !important;
     font-weight: bold;
     border: none;
@@ -20,14 +20,33 @@
     z-index: 10;
   }
   
+  .info {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    background: rgba(0,0,0,0.7);
+    padding: 10px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 5;
+  }
+  
   body {
     margin: 0;
     overflow: hidden;
-    touch-action: none; /* Prevent default touch behaviors */
+    background: black;
   }
 </style>
 </head>
 <body>
+<div class="info">
+  Tap screen to place atom<br>
+  Pinch to scale | Drag to move<br>
+  Use controller select for precise placement
+</div>
+
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 import { ARButton } from "https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/webxr/ARButton.js";
@@ -37,12 +56,9 @@ let reticle, controller, atom;
 let hitTestSource = null, hitTestSourceRequested = false;
 let electrons = [];
 
-// Improved gesture state
-let isMoving = false;
-let startX = 0, startY = 0;
-let startScale = 1, startDistance = 0;
-let startAngle = 0, lastRotation = 0;
-let lastTouchTime = 0;
+// WebXR input handling
+let inputSources = [];
+let lastInputState = new Map();
 
 init();
 animate();
@@ -56,12 +72,21 @@ function init() {
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+  // Create AR button with required features for input
+  const arButton = ARButton.createButton(renderer, { 
+    requiredFeatures: ['hit-test'],
+    optionalFeatures: ['dom-overlay', 'local-floor']
+  });
   arButton.classList.add("ar-button");
   document.body.appendChild(arButton);
 
   const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  light.position.set(0, 10, 0);
   scene.add(light);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight.position.set(0, 10, 5);
+  scene.add(directionalLight);
 
   // Reticle for placement
   reticle = new THREE.Mesh(
@@ -72,36 +97,98 @@ function init() {
   reticle.visible = false;
   scene.add(reticle);
 
-  // Controller
+  // Controller setup
   controller = renderer.xr.getController(0);
   controller.addEventListener('select', onSelect);
   scene.add(controller);
 
-  // Improved AR gestures
-  addARGestures();
+  // Add controller visual
+  const controllerModelFactory = new THREE.Object3D();
+  const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]);
+  const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xff0000 }));
+  line.scale.z = 5;
+  controller.add(line);
+
+  // Setup WebXR session event listeners
+  renderer.xr.addEventListener('sessionstart', onSessionStart);
+  renderer.xr.addEventListener('sessionend', onSessionEnd);
+}
+
+function onSessionStart() {
+  console.log('XR Session started');
+  const session = renderer.xr.getSession();
+  
+  // Listen for input source changes
+  session.addEventListener('inputsourceschange', (event) => {
+    inputSources = event.session.inputSources;
+    console.log('Input sources changed:', inputSources.length);
+  });
+
+  // Hide info panel when AR starts
+  document.querySelector('.info').style.display = 'none';
+}
+
+function onSessionEnd() {
+  console.log('XR Session ended');
+  inputSources = [];
+  lastInputState.clear();
+  
+  // Show info panel when AR ends
+  document.querySelector('.info').style.display = 'block';
 }
 
 function createAtom() {
   const group = new THREE.Group();
-  const nucleusGeo = new THREE.SphereGeometry(0.05,16,16);
-  const protonMat = new THREE.MeshStandardMaterial({ color:0xff0000 });
-  const neutronMat = new THREE.MeshStandardMaterial({ color:0x0000ff });
+  
+  // Nucleus particles
+  const nucleusGeo = new THREE.SphereGeometry(0.03, 16, 16);
+  const protonMat = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.3, roughness: 0.4 });
+  const neutronMat = new THREE.MeshStandardMaterial({ color: 0x0000ff, metalness: 0.3, roughness: 0.4 });
 
-  for(let i=0;i<8;i++){
-    const mat = i%2===0 ? protonMat : neutronMat;
-    const p = new THREE.Mesh(nucleusGeo, mat);
-    p.position.set((Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1);
-    group.add(p);
+  for(let i = 0; i < 8; i++){
+    const mat = i % 2 === 0 ? protonMat : neutronMat;
+    const particle = new THREE.Mesh(nucleusGeo, mat);
+    particle.position.set(
+      (Math.random() - 0.5) * 0.08,
+      (Math.random() - 0.5) * 0.08,
+      (Math.random() - 0.5) * 0.08
+    );
+    group.add(particle);
   }
 
   // Electrons
-  const electronGeo = new THREE.SphereGeometry(0.02,16,16);
-  const electronMat = new THREE.MeshStandardMaterial({color:0x00ff00});
-  for(let i=0;i<3;i++){
-    const e = new THREE.Mesh(electronGeo, electronMat);
-    e.userData = { angle: (i/3)*Math.PI*2, radius: 0.3+0.05*i };
-    group.add(e);
-    electrons.push(e);
+  const electronGeo = new THREE.SphereGeometry(0.015, 12, 12);
+  const electronMat = new THREE.MeshStandardMaterial({ 
+    color: 0x00ff00, 
+    metalness: 0.8, 
+    roughness: 0.2,
+    emissive: 0x002200
+  });
+  
+  for(let i = 0; i < 3; i++){
+    const electron = new THREE.Mesh(electronGeo, electronMat);
+    electron.userData = { 
+      angle: (i / 3) * Math.PI * 2, 
+      radius: 0.25 + 0.05 * i,
+      speed: 0.02 + Math.random() * 0.01
+    };
+    group.add(electron);
+    electrons.push(electron);
+  }
+
+  // Add orbital rings for visual reference
+  for(let i = 0; i < 3; i++){
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.24 + 0.05 * i, 0.26 + 0.05 * i, 32),
+      new THREE.MeshBasicMaterial({ 
+        color: 0x444444, 
+        transparent: true, 
+        opacity: 0.1,
+        side: THREE.DoubleSide 
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    group.add(ring);
   }
 
   return group;
@@ -111,10 +198,9 @@ function onSelect() {
   if(reticle.visible && !atom){
     atom = createAtom();
     atom.position.setFromMatrixPosition(reticle.matrix);
+    atom.scale.setScalar(1);
     scene.add(atom);
-    reticle.visible = false;
-    hitTestSource = null;
-    hitTestSourceRequested = true;
+    console.log('Atom placed at:', atom.position);
   }
 }
 
@@ -123,10 +209,16 @@ function animate() {
 }
 
 function render(timestamp, frame) {
-  if(atom){
-    electrons.forEach(e=>{
-      e.userData.angle += 0.02;
-      e.position.set(Math.cos(e.userData.angle)*e.userData.radius,0,Math.sin(e.userData.angle)*e.userData.radius);
+  // Animate electrons
+  if(atom && electrons.length > 0){
+    electrons.forEach(electron => {
+      electron.userData.angle += electron.userData.speed;
+      const radius = electron.userData.radius;
+      electron.position.set(
+        Math.cos(electron.userData.angle) * radius,
+        Math.sin(electron.userData.angle * 0.5) * 0.1,
+        Math.sin(electron.userData.angle) * radius
+      );
     });
   }
 
@@ -134,20 +226,21 @@ function render(timestamp, frame) {
     const referenceSpace = renderer.xr.getReferenceSpace();
     const session = renderer.xr.getSession();
 
+    // Handle hit test for placement
     if(!hitTestSourceRequested){
-      session.requestReferenceSpace('viewer').then((refSpace)=>{
-        session.requestHitTestSource({space: refSpace}).then((source)=>{
+      session.requestReferenceSpace('viewer').then((refSpace) => {
+        session.requestHitTestSource({ space: refSpace }).then((source) => {
           hitTestSource = source;
         });
       });
-      session.addEventListener('end', ()=>{
-        hitTestSourceRequested=false;
-        hitTestSource=null;
+      session.addEventListener('end', () => {
+        hitTestSourceRequested = false;
+        hitTestSource = null;
       });
       hitTestSourceRequested = true;
     }
 
-    if(hitTestSource){
+    if(hitTestSource && !atom){
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if(hitTestResults.length){
         const hit = hitTestResults[0];
@@ -158,141 +251,144 @@ function render(timestamp, frame) {
         reticle.visible = false;
       }
     }
+
+    // Handle WebXR input for manipulation
+    handleWebXRInput(frame, referenceSpace);
   }
 
-  renderer.render(scene,camera);
+  renderer.render(scene, camera);
 }
 
-// Improved AR Gestures with better Android support
-function addARGestures(){
-  let touchCache = [];
+function handleWebXRInput(frame, referenceSpace) {
+  if (!atom) return;
+
+  const session = renderer.xr.getSession();
   
-  // Helper function to get distance between two touches
-  function getDistance(touch1, touch2) {
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
+  // Process each input source
+  for (let inputSource of session.inputSources) {
+    if (!inputSource.gamepad) continue;
+
+    const sourceId = inputSource.handedness + '_' + (inputSource.targetRayMode || 'unknown');
+    
+    // Get input pose
+    let inputPose = null;
+    if (inputSource.targetRaySpace) {
+      inputPose = frame.getPose(inputSource.targetRaySpace, referenceSpace);
+    }
+
+    if (!inputPose) continue;
+
+    // Check for primary input (tap/click)
+    const primaryPressed = inputSource.gamepad.buttons[0] && inputSource.gamepad.buttons[0].pressed;
+    const lastPressed = lastInputState.get(sourceId + '_primary') || false;
+    
+    if (primaryPressed && !lastPressed) {
+      // Primary input just pressed - place atom if reticle visible
+      if (reticle.visible && !atom) {
+        onSelect();
+      }
+    }
+
+    // Handle touch/squeeze gestures for manipulation
+    if (atom && primaryPressed) {
+      const currentPosition = new THREE.Vector3().setFromMatrixPosition(inputPose.transform.matrix);
+      
+      // Store last position for drag calculations
+      const lastPositionKey = sourceId + '_position';
+      const lastPosition = lastInputState.get(lastPositionKey);
+      
+      if (lastPosition) {
+        // Calculate movement delta
+        const delta = currentPosition.clone().sub(lastPosition);
+        
+        // Apply movement to atom (scaled down)
+        atom.position.add(delta.multiplyScalar(0.5));
+      }
+      
+      lastInputState.set(lastPositionKey, currentPosition.clone());
+    } else {
+      // Clear position tracking when not pressed
+      lastInputState.delete(sourceId + '_position');
+    }
+
+    // Handle secondary input (squeeze) for scaling
+    const secondaryPressed = inputSource.gamepad.buttons[1] && inputSource.gamepad.buttons[1].pressed;
+    if (atom && secondaryPressed) {
+      // Simple scale gesture - could be enhanced with two-hand input
+      const scaleValue = inputSource.gamepad.buttons[1].value;
+      const targetScale = 0.5 + scaleValue * 1.5; // Scale between 0.5 and 2.0
+      atom.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+    }
+
+    // Store current state for next frame
+    lastInputState.set(sourceId + '_primary', primaryPressed);
+    lastInputState.set(sourceId + '_secondary', secondaryPressed);
   }
-  
-  // Helper function to get angle between two touches
-  function getAngle(touch1, touch2) {
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
-    return Math.atan2(dy, dx);
-  }
+}
+
+// Fallback touch handling for when not in XR mode
+function addFallbackGestures() {
+  let isManipulating = false;
+  let startTouch = null;
+  let startScale = 1;
+  let startDistance = 0;
 
   renderer.domElement.addEventListener('touchstart', (e) => {
+    if (renderer.xr.isPresenting) return; // Don't handle if in XR mode
+    
     e.preventDefault();
-    if(!atom) return;
-    
-    // Clear cache and add current touches
-    touchCache = [];
-    for(let i = 0; i < e.touches.length; i++) {
-      touchCache.push({
-        id: e.touches[i].identifier,
-        clientX: e.touches[i].clientX,
-        clientY: e.touches[i].clientY
-      });
-    }
-    
-    lastTouchTime = Date.now();
-    
-    if(e.touches.length === 1){
-      isMoving = true;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    } else if(e.touches.length === 2){
-      isMoving = false;
-      startDistance = getDistance(touchCache[0], touchCache[1]);
+    if (!atom) return;
+
+    if (e.touches.length === 1) {
+      isManipulating = true;
+      startTouch = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+    } else if (e.touches.length === 2) {
+      isManipulating = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      startDistance = Math.sqrt(dx * dx + dy * dy);
       startScale = atom.scale.x;
-      startAngle = getAngle(touchCache[0], touchCache[1]);
-      lastRotation = atom.rotation.y;
     }
   }, { passive: false });
 
   renderer.domElement.addEventListener('touchmove', (e) => {
+    if (renderer.xr.isPresenting) return;
+    
     e.preventDefault();
-    if(!atom) return;
-    
-    // Throttle touch events for better performance on Android
-    const now = Date.now();
-    if(now - lastTouchTime < 16) return; // ~60fps
-    lastTouchTime = now;
-    
-    // Update touch cache
-    for(let i = 0; i < e.touches.length; i++) {
-      const touch = e.touches[i];
-      const cacheIndex = touchCache.findIndex(t => t.id === touch.identifier);
-      if(cacheIndex >= 0) {
-        touchCache[cacheIndex].clientX = touch.clientX;
-        touchCache[cacheIndex].clientY = touch.clientY;
-      }
-    }
+    if (!atom) return;
 
-    if(e.touches.length === 1 && isMoving && touchCache.length >= 1){
-      const dx = touchCache[0].clientX - startX;
-      const dy = touchCache[0].clientY - startY;
-
-      // Improved conversion from screen space to world space
-      const factor = 0.002; // Increased sensitivity
-      const worldDx = dx * factor;
-      const worldDz = dy * factor;
+    if (e.touches.length === 1 && isManipulating && startTouch) {
+      const deltaX = (e.touches[0].clientX - startTouch.x) * 0.001;
+      const deltaY = (e.touches[0].clientY - startTouch.y) * 0.001;
       
-      atom.position.x += worldDx;
-      atom.position.z += worldDz;
-
-      startX = touchCache[0].clientX;
-      startY = touchCache[0].clientY;
+      atom.position.x += deltaX;
+      atom.position.z += deltaY;
       
-    } else if(e.touches.length === 2 && touchCache.length >= 2){
-      // Scale gesture
-      const currentDistance = getDistance(touchCache[0], touchCache[1]);
-      const scaleRatio = currentDistance / startDistance;
-      const newScale = Math.max(0.1, Math.min(3.0, startScale * scaleRatio)); // Limit scale
-      atom.scale.setScalar(newScale);
-
-      // Rotation gesture
-      const currentAngle = getAngle(touchCache[0], touchCache[1]);
-      const angleDelta = currentAngle - startAngle;
-      atom.rotation.y = lastRotation + angleDelta;
+      startTouch.x = e.touches[0].clientX;
+      startTouch.y = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      const scale = Math.max(0.2, Math.min(3.0, startScale * (distance / startDistance)));
+      atom.scale.setScalar(scale);
     }
   }, { passive: false });
 
   renderer.domElement.addEventListener('touchend', (e) => {
-    e.preventDefault();
+    if (renderer.xr.isPresenting) return;
     
-    // Remove ended touches from cache
-    const remainingTouches = [];
-    for(let i = 0; i < e.touches.length; i++) {
-      remainingTouches.push({
-        id: e.touches[i].identifier,
-        clientX: e.touches[i].clientX,
-        clientY: e.touches[i].clientY
-      });
-    }
-    touchCache = remainingTouches;
-    
-    if(e.touches.length === 0) {
-      isMoving = false;
-    } else if(e.touches.length === 1 && touchCache.length >= 1) {
-      // Switching from two-finger to one-finger
-      isMoving = true;
-      startX = touchCache[0].clientX;
-      startY = touchCache[0].clientY;
-    }
+    isManipulating = false;
+    startTouch = null;
   }, { passive: false });
-
-  renderer.domElement.addEventListener('touchcancel', (e) => {
-    e.preventDefault();
-    isMoving = false;
-    touchCache = [];
-  }, { passive: false });
-  
-  // Prevent context menu on long press
-  renderer.domElement.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-  });
 }
+
+// Initialize fallback gestures
+addFallbackGestures();
 </script>
 </body>
 </html>
