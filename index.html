@@ -107,14 +107,18 @@
         return group;
       }
 
-      function onSelect() {
-        if (reticle.visible && !atom) {
-          atom = createAtom();
-          atom.position.setFromMatrixPosition(reticle.matrix);
-          scene.add(atom);
-          reticle.visible = false; // hide ring after placement
-        }
-      }
+     function onSelect() {
+  if (reticle.visible && !atom) {
+    atom = createAtom();
+    atom.position.setFromMatrixPosition(reticle.matrix);
+    scene.add(atom);
+
+    reticle.visible = false;       // hide the ring
+    hitTestSource = null;          // stop hit test so it won’t update
+    hitTestSourceRequested = true; // prevent re-request
+  }
+}
+
 
       function animate() {
         renderer.setAnimationLoop(render);
