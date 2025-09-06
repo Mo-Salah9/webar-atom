@@ -58,7 +58,7 @@ function init() {
   reticle.visible = false;
   scene.add(reticle);
 
-  // Controller
+  // Controller for tap to place
   controller = renderer.xr.getController(0);
   controller.addEventListener('select', onSelect);
   scene.add(controller);
