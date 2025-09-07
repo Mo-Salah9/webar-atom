@@ -120,6 +120,59 @@
             display: none !important;
         }
 
+        /* Info toast */
+        .info-toast {
+            position: absolute;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            pointer-events: all;
+            max-width: 90vw;
+        }
+
+        /* Challenge panel */
+        .challenge-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            max-width: 480px;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            pointer-events: all;
+        }
+
+        .challenge-header { font-weight: bold; margin-bottom: 10px; color: #4ECDC4; }
+
+        .challenge-row { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
+        .draggable { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 10px 14px; border-radius: 10px; cursor: grab; user-select: none; }
+        .droptarget { flex: 1; min-width: 140px; background: rgba(255,255,255,0.08); border: 2px dashed rgba(255,255,255,0.25); border-radius: 12px; padding: 12px; text-align: center; min-height: 48px; }
+        .droptarget.ok { border-color: #4ECDC4; background: rgba(78,205,196,0.15); }
+        .droptarget.bad { border-color: #f44336; background: rgba(244,67,54,0.15); }
+
+        /* Summary panel */
+        .summary-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            max-width: 480px;
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            pointer-events: all;
+        }
+        .btn-primary { background: #4ECDC4; color: #003; border: none; border-radius: 10px; padding: 10px 16px; font-weight: bold; cursor: pointer; }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -148,6 +201,31 @@
             </ul>
         </div>
         
+        <div class="info-toast hidden" id="infoToast"></div>
+
+        <div class="challenge-panel hidden" id="challengePanel">
+            <div class="challenge-header">هيا ضع البطاقات في أماكنها الصحيحة</div>
+            <div class="challenge-row" id="cardsRow">
+                <div class="draggable" data-key="proton">بروتون</div>
+                <div class="draggable" data-key="neutron">نيوترون</div>
+                <div class="draggable" data-key="electron">إلكترون</div>
+            </div>
+            <div class="challenge-row">
+                <div class="droptarget" data-accept="nucleus">النواة</div>
+                <div class="droptarget" data-accept="electron-shell">مستويات الطاقة</div>
+            </div>
+        </div>
+
+        <div class="summary-panel hidden" id="summaryPanel">
+            <div style="margin-bottom:10px; color:#4ECDC4; font-weight:bold;">ملخص ما تعلمته</div>
+            <div style="line-height:1.6;">
+                الذرّة تتكون من نواة (بروتونات موجبة ونيوترونات متعادلة) وإلكترونات سالبة تدور حول النواة على مستويات الطاقة.
+            </div>
+            <div style="margin-top:12px; text-align:center;">
+                <button class="btn-primary" id="finishBtn">إنهاء</button>
+            </div>
+        </div>
+
         <div class="controls hidden" id="controls">
             <button class="control-btn" id="scaleUp" title="Scale Up">+</button>
             <button class="control-btn" id="scaleDown" title="Scale Down">-</button>
