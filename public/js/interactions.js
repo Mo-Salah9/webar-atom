@@ -38,6 +38,11 @@ export class InteractionManager {
         this.hasTouchTarget = false;
         this.dragLerpFactor = 0.2; // 0..1 per frame
 
+        // One-finger swipe rotation
+        this.isTouchRotating = false;
+        this.initialTouchX = 0;
+        this.rotationSensitivity = 0.01; // radians per pixel
+
         this.setupControllers();
         this.setupTouchEvents();
     }
@@ -114,18 +119,13 @@ export class InteractionManager {
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         if (this.activePointers.size === 1) {
-            // Begin drag if touching the atom
+            // Begin rotation if touching the atom
             const { x, y } = this.activePointers.get(event.pointerId);
             if (this.isTouchOnAtom(x, y)) {
-                this.isTouchGrabbing = true;
-                // Define a drag plane that passes through the atom and faces the camera
-                const atomPos = this.atom.getGroup().position.clone();
-                const cameraDir = new THREE.Vector3();
-                this.camera.getWorldDirection(cameraDir);
-                this.dragPlane.setFromNormalAndCoplanarPoint(cameraDir, atomPos);
-                this.initialAtomPosition.copy(atomPos);
-                this.touchTargetPosition.copy(atomPos);
-                this.hasTouchTarget = true;
+                this.isTouchRotating = true;
+                this.initialTouchX = x;
+                this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
+                this.isTouchGrabbing = false; // disable move
             }
         } else if (this.activePointers.size === 2) {
             // Start pinch scaling
@@ -135,6 +135,7 @@ export class InteractionManager {
             this.initialScale = this.atom.getScale();
             this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
             this.isTouchGrabbing = false; // disable drag while pinching
+            this.isTouchRotating = false; // rotation handled by twist while pinching
         }
     }
 
@@ -145,13 +146,15 @@ export class InteractionManager {
         // Update pointer position
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-        if (this.activePointers.size === 1 && this.isTouchGrabbing) {
+        if (this.activePointers.size === 1 && this.isTouchRotating) {
             event.preventDefault();
-            const { x, y } = this.activePointers.values().next().value;
-            const worldPoint = this.screenPointToPlaneIntersection(x, y, this.dragPlane);
-            if (worldPoint) {
-                this.touchTargetPosition.copy(worldPoint);
-                this.hasTouchTarget = true;
+            const { x } = this.activePointers.values().next().value;
+            const deltaX = x - this.initialTouchX;
+            const newY = this.initialRotationY + deltaX * this.rotationSensitivity;
+            if (this.atom.setRotationY) {
+                this.atom.setRotationY(newY);
+            } else {
+                this.atom.getGroup().rotation.y = newY;
             }
         } else if (this.activePointers.size === 2) {
             event.preventDefault();
@@ -187,6 +190,7 @@ export class InteractionManager {
         if (this.activePointers.size === 0) {
             this.isTouchGrabbing = false;
             this.hasTouchTarget = false;
+            this.isTouchRotating = false;
         }
     }
 
@@ -308,8 +312,8 @@ export class InteractionManager {
             this.atom.setPosition(newPosition.x, newPosition.y, newPosition.z);
         }
 
-        // Smoothly move towards touch target while dragging
-        if (this.isTouchGrabbing && this.hasTouchTarget) {
+        // Smoothly move towards touch target while dragging (disabled when rotating)
+        if (this.isTouchGrabbing && !this.isTouchRotating && this.hasTouchTarget) {
             const current = this.atom.getGroup().position.clone();
             current.lerp(this.touchTargetPosition, this.dragLerpFactor);
             this.atom.setPosition(current.x, current.y, current.z);
