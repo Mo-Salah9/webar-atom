@@ -33,6 +33,11 @@ export class InteractionManager {
         this.initialTouchAngle = 0;
         this.initialRotationY = 0;
 
+        // Smooth dragging
+        this.touchTargetPosition = new THREE.Vector3();
+        this.hasTouchTarget = false;
+        this.dragLerpFactor = 0.2; // 0..1 per frame
+
         this.setupControllers();
         this.setupTouchEvents();
     }
@@ -119,6 +124,8 @@ export class InteractionManager {
                 this.camera.getWorldDirection(cameraDir);
                 this.dragPlane.setFromNormalAndCoplanarPoint(cameraDir, atomPos);
                 this.initialAtomPosition.copy(atomPos);
+                this.touchTargetPosition.copy(atomPos);
+                this.hasTouchTarget = true;
             }
         } else if (this.activePointers.size === 2) {
             // Start pinch scaling
@@ -143,7 +150,8 @@ export class InteractionManager {
             const { x, y } = this.activePointers.values().next().value;
             const worldPoint = this.screenPointToPlaneIntersection(x, y, this.dragPlane);
             if (worldPoint) {
-                this.atom.setPosition(worldPoint.x, worldPoint.y, worldPoint.z);
+                this.touchTargetPosition.copy(worldPoint);
+                this.hasTouchTarget = true;
             }
         } else if (this.activePointers.size === 2) {
             event.preventDefault();
@@ -178,6 +186,7 @@ export class InteractionManager {
         }
         if (this.activePointers.size === 0) {
             this.isTouchGrabbing = false;
+            this.hasTouchTarget = false;
         }
     }
 
@@ -297,6 +306,13 @@ export class InteractionManager {
                 .add(deltaPosition);
             
             this.atom.setPosition(newPosition.x, newPosition.y, newPosition.z);
+        }
+
+        // Smoothly move towards touch target while dragging
+        if (this.isTouchGrabbing && this.hasTouchTarget) {
+            const current = this.atom.getGroup().position.clone();
+            current.lerp(this.touchTargetPosition, this.dragLerpFactor);
+            this.atom.setPosition(current.x, current.y, current.z);
         }
 
         // Handle controller-based scaling
