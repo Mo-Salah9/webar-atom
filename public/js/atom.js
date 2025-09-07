@@ -11,6 +11,8 @@ export class AtomModel {
         this.animationSpeed = 0.02;
         this.baseScale = 1;
         this.time = 0;
+        this._isFaded = false;
+        this._selectionKeepSet = null;
         
         this.createAtom();
     }
@@ -387,5 +389,63 @@ export class AtomModel {
                 }
             }
         });
+    }
+
+    // Selection / fading helpers
+    fadeExcept(targetObject, fadeOpacity = 0.1) {
+        if (!targetObject) return;
+
+        // Build a set containing target and all of its descendants to keep at full opacity
+        const keepSet = new Set();
+        targetObject.traverse((obj) => keepSet.add(obj));
+        this._selectionKeepSet = keepSet;
+
+        // Traverse all renderable objects in the atom and adjust opacity
+        this.group.traverse((obj) => {
+            const material = obj.material;
+            if (!material) return;
+
+            const materials = Array.isArray(material) ? material : [material];
+            const shouldKeep = keepSet.has(obj);
+
+            materials.forEach((mat) => {
+                // Store originals once
+                if (mat.userData._origTransparent === undefined) {
+                    mat.userData._origTransparent = mat.transparent === true;
+                }
+                if (mat.userData._origOpacity === undefined) {
+                    mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
+                }
+
+                // Ensure transparency enabled to allow fading
+                mat.transparent = true;
+                // Keep selected subtree fully visible; fade everything else
+                mat.opacity = shouldKeep ? 1.0 : fadeOpacity;
+                // For line materials that ignore depth, leave as-is; opacity still applies
+            });
+        });
+
+        this._isFaded = true;
+    }
+
+    restoreOpacity() {
+        if (!this._isFaded) return;
+        this.group.traverse((obj) => {
+            const material = obj.material;
+            if (!material) return;
+            const materials = Array.isArray(material) ? material : [material];
+            materials.forEach((mat) => {
+                if (mat.userData && mat.userData._origOpacity !== undefined) {
+                    mat.opacity = mat.userData._origOpacity;
+                } else {
+                    mat.opacity = 1.0;
+                }
+                if (mat.userData && mat.userData._origTransparent !== undefined) {
+                    mat.transparent = mat.userData._origTransparent;
+                }
+            });
+        });
+        this._selectionKeepSet = null;
+        this._isFaded = false;
     }
 }

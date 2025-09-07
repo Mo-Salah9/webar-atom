@@ -121,11 +121,22 @@ export class InteractionManager {
         if (this.activePointers.size === 1) {
             // Begin rotation if touching the atom
             const { x, y } = this.activePointers.get(event.pointerId);
-            if (this.isTouchOnAtom(x, y)) {
+            const intersections = this.raycastFromScreen(x, y);
+            if (intersections.length > 0) {
+                // Fade all other parts except the clicked part's subtree
+                const clickedObject = intersections[0].object;
+                if (this.atom.fadeExcept) {
+                    this.atom.fadeExcept(clickedObject, 0.1);
+                }
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
                 this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
                 this.isTouchGrabbing = false; // disable move
+            } else {
+                // Tap empty space restores opacity
+                if (this.atom.restoreOpacity) {
+                    this.atom.restoreOpacity();
+                }
             }
         } else if (this.activePointers.size === 2) {
             // Start pinch scaling
