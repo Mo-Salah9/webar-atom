@@ -218,7 +218,9 @@ export class InteractionManager {
 
     // Mouse Events (Desktop Testing)
     onMouseDown(event) {
-        // Similar to touch start but for mouse
+        // Simple mouse handling for desktop testing
+        if (!this.atom) return;
+        console.log('Mouse down');
     }
 
     onMouseMove(event) {
@@ -231,7 +233,6 @@ export class InteractionManager {
 
     onWheel(event) {
         if (!this.atom) return;
-        
         event.preventDefault();
         const scaleFactor = event.deltaY > 0 ? 0.9 : 1.1;
         this.scaleAtom(scaleFactor);
