@@ -146,7 +146,6 @@ class WebARAtomApp {
             console.log('🚀 AR session started');
             this.isARActive = true;
             this.hideInstructions();
-            this.showControls();
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
@@ -154,7 +153,6 @@ class WebARAtomApp {
             this.isARActive = false;
             this.atomPlaced = false;
             this.showInstructions();
-            this.hideControls();
             
             if (this.atom) {
                 this.scene.remove(this.atom.getGroup());
@@ -180,25 +178,6 @@ class WebARAtomApp {
     setupEventListeners() {
         // Window resize
         window.addEventListener('resize', () => this.onWindowResize(), false);
-
-        // Keyboard shortcuts for testing
-        document.addEventListener('keydown', (event) => {
-            if (!this.atom) return;
-            
-            switch(event.code) {
-                case 'Equal':
-                case 'NumpadAdd':
-                    this.interactionManager.scaleAtom(1.1);
-                    break;
-                case 'Minus':
-                case 'NumpadSubtract':
-                    this.interactionManager.scaleAtom(0.9);
-                    break;
-                case 'KeyR':
-                    this.interactionManager.resetAtom();
-                    break;
-            }
-        });
     }
 
     onSelect() {
@@ -348,20 +327,6 @@ class WebARAtomApp {
         const instructions = document.getElementById('instructions');
         if (instructions) {
             instructions.classList.add('hidden');
-        }
-    }
-
-    showControls() {
-        const controls = document.getElementById('controls');
-        if (controls) {
-            controls.classList.remove('hidden');
-        }
-    }
-
-    hideControls() {
-        const controls = document.getElementById('controls');
-        if (controls) {
-            controls.classList.add('hidden');
         }
     }
 

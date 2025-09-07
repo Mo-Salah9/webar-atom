@@ -22,32 +22,32 @@ export class InteractionManager {
         this.isScaling = false;
         this.scalingControllers = [];
         this.initialDistance = 0;
-        
-        // Touch state for fallback
-        this.touchState = {
-            touches: [],
-            initialDistance: 0,
-            initialScale: 1,
-            isScaling: false
-        };
+
+        // Touch/Pointer interaction state (for Android/iOS screens)
+        this.activePointers = new Map(); // pointerId -> { x, y }
+        this.isTouchGrabbing = false;
+        this.dragPlane = new THREE.Plane();
+        this.raycaster = new THREE.Raycaster();
+        this.ndc = new THREE.Vector2();
+        this.initialTouchDistance = 0;
 
         this.setupControllers();
-        this.setupFallbackControls();
+        this.setupTouchEvents();
     }
 
     setupControllers() {
-        // Setup XR controllers
+        // Setup XR controllers - this handles ALL input automatically
         for (let i = 0; i < 2; i++) {
             const controller = this.renderer.xr.getController(i);
             const controllerGrip = this.renderer.xr.getControllerGrip(i);
 
-            // Controller events
+            // Controller events - WebXR handles touch/tap automatically
             controller.addEventListener('selectstart', (event) => this.onControllerSelectStart(event));
             controller.addEventListener('selectend', (event) => this.onControllerSelectEnd(event));
             controller.addEventListener('squeezestart', (event) => this.onControllerSqueezeStart(event));
             controller.addEventListener('squeezeend', (event) => this.onControllerSqueezeEnd(event));
 
-            // Add controller models
+            // Add visual ray for debugging
             const geometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
                 new THREE.Vector3(0, 0, -1)
@@ -69,33 +69,134 @@ export class InteractionManager {
             this.controllers.push(controller);
             this.controllerGrips.push(controllerGrip);
         }
+        
+        console.log('✅ WebXR controllers setup - handles touch automatically');
     }
 
-    setupFallbackControls() {
+    setupTouchEvents() {
+        // Ensure the canvas allows touch gestures
         const canvas = this.renderer.domElement;
+        if (canvas && canvas.style) {
+            canvas.style.touchAction = 'none';
+            canvas.style.webkitUserSelect = 'none';
+            canvas.style.userSelect = 'none';
+        }
 
-        // Touch events for mobile fallback
-        canvas.addEventListener('touchstart', (event) => this.onTouchStart(event), { passive: false });
-        canvas.addEventListener('touchmove', (event) => this.onTouchMove(event), { passive: false });
-        canvas.addEventListener('touchend', (event) => this.onTouchEnd(event), { passive: false });
+        // Pointer events work for both mouse and touch. We only act during AR sessions effectively on mobile.
+        this._onPointerDown = (event) => this.onPointerDown(event);
+        this._onPointerMove = (event) => this.onPointerMove(event);
+        this._onPointerUp = (event) => this.onPointerUp(event);
+        this._onPointerCancel = (event) => this.onPointerUp(event);
 
-        // Mouse events for desktop testing
-        canvas.addEventListener('mousedown', (event) => this.onMouseDown(event));
-        canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
-        canvas.addEventListener('mouseup', (event) => this.onMouseUp(event));
-        canvas.addEventListener('wheel', (event) => this.onWheel(event), { passive: false });
+        canvas.addEventListener('pointerdown', this._onPointerDown, { passive: false });
+        canvas.addEventListener('pointermove', this._onPointerMove, { passive: false });
+        canvas.addEventListener('pointerup', this._onPointerUp, { passive: false });
+        canvas.addEventListener('pointercancel', this._onPointerCancel, { passive: false });
+        canvas.addEventListener('pointerout', this._onPointerUp, { passive: false });
+        canvas.addEventListener('pointerleave', this._onPointerUp, { passive: false });
+    }
 
-        // UI button controls
-        document.getElementById('scaleUp')?.addEventListener('click', () => this.scaleAtom(1.1));
-        document.getElementById('scaleDown')?.addEventListener('click', () => this.scaleAtom(0.9));
-        document.getElementById('reset')?.addEventListener('click', () => this.resetAtom());
+    onPointerDown(event) {
+        if (!this.atom) return;
+        // Record pointer
+        this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (this.activePointers.size === 1) {
+            // Begin drag if touching the atom
+            const { x, y } = this.activePointers.get(event.pointerId);
+            if (this.isTouchOnAtom(x, y)) {
+                this.isTouchGrabbing = true;
+                // Define a drag plane that passes through the atom and faces the camera
+                const atomPos = this.atom.getGroup().position.clone();
+                const cameraDir = new THREE.Vector3();
+                this.camera.getWorldDirection(cameraDir);
+                this.dragPlane.setFromNormalAndCoplanarPoint(cameraDir, atomPos);
+                this.initialAtomPosition.copy(atomPos);
+            }
+        } else if (this.activePointers.size === 2) {
+            // Start pinch scaling
+            const points = Array.from(this.activePointers.values());
+            this.initialTouchDistance = this.distance2(points[0], points[1]);
+            this.initialScale = this.atom.getScale();
+            this.isTouchGrabbing = false; // disable drag while pinching
+        }
+    }
+
+    onPointerMove(event) {
+        if (!this.atom) return;
+        if (!this.activePointers.has(event.pointerId)) return;
+
+        // Update pointer position
+        this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (this.activePointers.size === 1 && this.isTouchGrabbing) {
+            event.preventDefault();
+            const { x, y } = this.activePointers.values().next().value;
+            const worldPoint = this.screenPointToPlaneIntersection(x, y, this.dragPlane);
+            if (worldPoint) {
+                this.atom.setPosition(worldPoint.x, worldPoint.y, worldPoint.z);
+            }
+        } else if (this.activePointers.size === 2) {
+            event.preventDefault();
+            // Pinch to scale
+            const points = Array.from(this.activePointers.values());
+            const currentDistance = this.distance2(points[0], points[1]);
+            if (this.initialTouchDistance > 0) {
+                const ratio = currentDistance / this.initialTouchDistance;
+                const newScale = Math.max(0.1, Math.min(5, this.initialScale * ratio));
+                this.atom.setScale(newScale);
+            }
+        }
+    }
+
+    onPointerUp(event) {
+        if (this.activePointers.has(event.pointerId)) {
+            this.activePointers.delete(event.pointerId);
+        }
+
+        if (this.activePointers.size < 2) {
+            this.initialTouchDistance = 0;
+        }
+        if (this.activePointers.size === 0) {
+            this.isTouchGrabbing = false;
+        }
+    }
+
+    // Helpers for touch interactions
+    isTouchOnAtom(x, y) {
+        const intersect = this.raycastFromScreen(x, y);
+        return intersect.length > 0;
+    }
+
+    raycastFromScreen(x, y) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.ndc.x = ((x - rect.left) / rect.width) * 2 - 1;
+        this.ndc.y = -((y - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.ndc, this.camera);
+        return this.raycaster.intersectObject(this.atom.getGroup(), true);
+    }
+
+    screenPointToPlaneIntersection(x, y, plane) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.ndc.x = ((x - rect.left) / rect.width) * 2 - 1;
+        this.ndc.y = -((y - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.ndc, this.camera);
+        const point = new THREE.Vector3();
+        const hit = this.raycaster.ray.intersectPlane(plane, point);
+        return hit ? point : null;
+    }
+
+    distance2(p1, p2) {
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        return Math.hypot(dx, dy);
     }
 
     setAtom(atom) {
         this.atom = atom;
     }
 
-    // WebXR Controller Events
+    // WebXR Controller Events - handles ALL input (touch, controllers, etc.)
     onControllerSelectStart(event) {
         if (!this.atom) return;
 
@@ -109,6 +210,7 @@ export class InteractionManager {
             this.initialAtomPosition.copy(this.atom.getGroup().position);
             
             controller.userData.isSelecting = true;
+            console.log('🎯 Atom grabbed via WebXR');
         }
     }
 
@@ -119,6 +221,7 @@ export class InteractionManager {
         if (this.grabController === controller) {
             this.isGrabbing = false;
             this.grabController = null;
+            console.log('✋ Atom released');
         }
     }
 
@@ -135,6 +238,7 @@ export class InteractionManager {
                 this.scalingControllers[1].position
             );
             this.initialScale = this.atom.getScale();
+            console.log('📏 Two-handed scaling started');
         }
     }
 
@@ -149,93 +253,8 @@ export class InteractionManager {
 
         if (this.scalingControllers.length < 2) {
             this.isScaling = false;
+            console.log('📏 Scaling ended');
         }
-    }
-
-    // Touch Events (Fallback)
-    onTouchStart(event) {
-        if (!this.atom) return;
-        
-        event.preventDefault();
-        this.touchState.touches = Array.from(event.touches);
-
-        if (event.touches.length === 2) {
-            const touch1 = event.touches[0];
-            const touch2 = event.touches[1];
-            
-            this.touchState.initialDistance = Math.sqrt(
-                Math.pow(touch2.clientX - touch1.clientX, 2) +
-                Math.pow(touch2.clientY - touch1.clientY, 2)
-            );
-            this.touchState.initialScale = this.atom.getScale();
-            this.touchState.isScaling = true;
-        }
-    }
-
-    onTouchMove(event) {
-        if (!this.atom) return;
-        
-        event.preventDefault();
-
-        if (this.touchState.isScaling && event.touches.length === 2) {
-            const touch1 = event.touches[0];
-            const touch2 = event.touches[1];
-            
-            const currentDistance = Math.sqrt(
-                Math.pow(touch2.clientX - touch1.clientX, 2) +
-                Math.pow(touch2.clientY - touch1.clientY, 2)
-            );
-            
-            const scaleRatio = currentDistance / this.touchState.initialDistance;
-            const newScale = Math.max(0.1, Math.min(5, this.touchState.initialScale * scaleRatio));
-            this.atom.setScale(newScale);
-        } else if (event.touches.length === 1) {
-            // Single touch - move atom (simplified for AR)
-            const touch = event.touches[0];
-            const previousTouch = this.touchState.touches[0];
-            
-            if (previousTouch) {
-                const deltaX = (touch.clientX - previousTouch.clientX) * 0.001;
-                const deltaY = (touch.clientY - previousTouch.clientY) * 0.001;
-                
-                const currentPos = this.atom.getGroup().position;
-                this.atom.setPosition(
-                    currentPos.x + deltaX,
-                    currentPos.y - deltaY,
-                    currentPos.z
-                );
-            }
-        }
-        
-        this.touchState.touches = Array.from(event.touches);
-    }
-
-    onTouchEnd(event) {
-        event.preventDefault();
-        this.touchState.isScaling = false;
-        this.touchState.touches = Array.from(event.touches);
-    }
-
-    // Mouse Events (Desktop Testing)
-    onMouseDown(event) {
-        // Simple mouse handling for desktop testing
-        if (!this.atom) return;
-        console.log('Mouse down');
-    }
-
-    onMouseMove(event) {
-        // Mouse move handling
-    }
-
-    onMouseUp(event) {
-        // Mouse up handling
-    }
-
-    onWheel(event) {
-        if (!this.atom) return;
-        event.preventDefault();
-        const scaleFactor = event.deltaY > 0 ? 0.9 : 1.1;
-        this.scaleAtom(scaleFactor);
     }
 
     // Update method called in animation loop
@@ -297,20 +316,16 @@ export class InteractionManager {
     }
 
     dispose() {
-        // Clean up event listeners and resources
+        // Remove touch listeners
         const canvas = this.renderer.domElement;
-        
-        // Remove all touch event listeners
-        canvas.removeEventListener('touchstart', this.onTouchStart);
-        canvas.removeEventListener('touchmove', this.onTouchMove);
-        canvas.removeEventListener('touchend', this.onTouchEnd);
-        canvas.removeEventListener('touchcancel', this.onTouchEnd);
-        canvas.removeEventListener('contextmenu', this.onContextMenu);
-        
-        // Remove mouse event listeners
-        canvas.removeEventListener('mousedown', this.onMouseDown);
-        canvas.removeEventListener('mousemove', this.onMouseMove);
-        canvas.removeEventListener('mouseup', this.onMouseUp);
-        canvas.removeEventListener('wheel', this.onWheel);
+        if (canvas) {
+            canvas.removeEventListener('pointerdown', this._onPointerDown);
+            canvas.removeEventListener('pointermove', this._onPointerMove);
+            canvas.removeEventListener('pointerup', this._onPointerUp);
+            canvas.removeEventListener('pointercancel', this._onPointerCancel);
+            canvas.removeEventListener('pointerout', this._onPointerUp);
+            canvas.removeEventListener('pointerleave', this._onPointerUp);
+        }
+        console.log('🧹 InteractionManager disposed');
     }
 }
