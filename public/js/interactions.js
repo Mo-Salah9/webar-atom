@@ -74,12 +74,16 @@ export class InteractionManager {
     }
 
     setupTouchEvents() {
-        // Ensure the canvas allows touch gestures
+        // Prefer binding to DOM Overlay on mobile (Android Chrome routes input to overlay during AR)
+        const overlay = document.querySelector('.ui-overlay');
         const canvas = this.renderer.domElement;
-        if (canvas && canvas.style) {
-            canvas.style.touchAction = 'none';
-            canvas.style.webkitUserSelect = 'none';
-            canvas.style.userSelect = 'none';
+        this._touchTarget = overlay || canvas;
+        if (this._touchTarget && this._touchTarget.style) {
+            this._touchTarget.style.touchAction = 'none';
+            this._touchTarget.style.webkitUserSelect = 'none';
+            this._touchTarget.style.userSelect = 'none';
+            // Ensure overlay receives events on Android DOM Overlay
+            this._touchTarget.style.pointerEvents = 'all';
         }
 
         // Pointer events work for both mouse and touch. We only act during AR sessions effectively on mobile.
@@ -88,17 +92,18 @@ export class InteractionManager {
         this._onPointerUp = (event) => this.onPointerUp(event);
         this._onPointerCancel = (event) => this.onPointerUp(event);
 
-        canvas.addEventListener('pointerdown', this._onPointerDown, { passive: false });
-        canvas.addEventListener('pointermove', this._onPointerMove, { passive: false });
-        canvas.addEventListener('pointerup', this._onPointerUp, { passive: false });
-        canvas.addEventListener('pointercancel', this._onPointerCancel, { passive: false });
-        canvas.addEventListener('pointerout', this._onPointerUp, { passive: false });
-        canvas.addEventListener('pointerleave', this._onPointerUp, { passive: false });
+        this._touchTarget.addEventListener('pointerdown', this._onPointerDown, { passive: false });
+        this._touchTarget.addEventListener('pointermove', this._onPointerMove, { passive: false });
+        this._touchTarget.addEventListener('pointerup', this._onPointerUp, { passive: false });
+        this._touchTarget.addEventListener('pointercancel', this._onPointerCancel, { passive: false });
+        this._touchTarget.addEventListener('pointerout', this._onPointerUp, { passive: false });
+        this._touchTarget.addEventListener('pointerleave', this._onPointerUp, { passive: false });
     }
 
     onPointerDown(event) {
         if (!this.atom) return;
         // Record pointer
+        event.preventDefault();
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         if (this.activePointers.size === 1) {
@@ -151,6 +156,7 @@ export class InteractionManager {
 
     onPointerUp(event) {
         if (this.activePointers.has(event.pointerId)) {
+            event.preventDefault();
             this.activePointers.delete(event.pointerId);
         }
 
@@ -317,14 +323,14 @@ export class InteractionManager {
 
     dispose() {
         // Remove touch listeners
-        const canvas = this.renderer.domElement;
-        if (canvas) {
-            canvas.removeEventListener('pointerdown', this._onPointerDown);
-            canvas.removeEventListener('pointermove', this._onPointerMove);
-            canvas.removeEventListener('pointerup', this._onPointerUp);
-            canvas.removeEventListener('pointercancel', this._onPointerCancel);
-            canvas.removeEventListener('pointerout', this._onPointerUp);
-            canvas.removeEventListener('pointerleave', this._onPointerUp);
+        const target = this._touchTarget || this.renderer.domElement;
+        if (target) {
+            target.removeEventListener('pointerdown', this._onPointerDown);
+            target.removeEventListener('pointermove', this._onPointerMove);
+            target.removeEventListener('pointerup', this._onPointerUp);
+            target.removeEventListener('pointercancel', this._onPointerCancel);
+            target.removeEventListener('pointerout', this._onPointerUp);
+            target.removeEventListener('pointerleave', this._onPointerUp);
         }
         console.log('🧹 InteractionManager disposed');
     }
