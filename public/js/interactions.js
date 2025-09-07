@@ -45,6 +45,9 @@ export class InteractionManager {
 
         this.setupControllers();
         this.setupTouchEvents();
+
+        // UI
+        this.infoToast = document.getElementById('infoToast');
     }
 
     setupControllers() {
@@ -117,6 +120,12 @@ export class InteractionManager {
         // Record pointer
         event.preventDefault();
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        // Track potential tap
+        if (this.activePointers.size === 1) {
+            this._tapStartTime = performance.now();
+            this._tapStartPos = { x: event.clientX, y: event.clientY };
+        }
 
         if (this.activePointers.size === 1) {
             // Begin rotation if touching the atom
@@ -191,6 +200,19 @@ export class InteractionManager {
             this.isTouchGrabbing = false;
             this.hasTouchTarget = false;
             this.isTouchRotating = false;
+
+            // If quick tap with minimal move → highlight
+            if (this._tapStartTime) {
+                const dt = performance.now() - this._tapStartTime;
+                const dx = event.clientX - (this._tapStartPos ? this._tapStartPos.x : 0);
+                const dy = event.clientY - (this._tapStartPos ? this._tapStartPos.y : 0);
+                const moved = Math.hypot(dx, dy);
+                if (dt < 250 && moved < 8) {
+                    this.handleTap(event.clientX, event.clientY);
+                }
+                this._tapStartTime = null;
+                this._tapStartPos = null;
+            }
         }
     }
 
@@ -343,6 +365,39 @@ export class InteractionManager {
         raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
         return raycaster.intersectObject(this.atom.getGroup(), true);
+    }
+
+    // UI helpers
+    showInfo(text) {
+        if (!this.infoToast) return;
+        this.infoToast.textContent = text;
+        this.infoToast.classList.remove('hidden');
+        clearTimeout(this._infoTimeout);
+        this._infoTimeout = setTimeout(() => {
+            if (this.infoToast) this.infoToast.classList.add('hidden');
+        }, 3500);
+    }
+
+    handleTap(x, y) {
+        if (!this.atom) return;
+        const hits = this.raycastFromScreen(x, y);
+        if (hits.length === 0) {
+            if (this.atom.clearFades) this.atom.clearFades();
+            return;
+        }
+        const obj = hits[0].object;
+        if (this.atom.fadeOthersExcept) this.atom.fadeOthersExcept(obj);
+
+        const partType = obj.userData && obj.userData.type;
+        if (partType === 'proton') {
+            this.showInfo('البروتونات: توجد داخل نواة الذرة، تحمل شحنة موجبة، وتحدد نوع العنصر وعدده الذري.');
+        } else if (partType === 'neutron') {
+            this.showInfo('النيوترونات: توجد داخل النواة ومتعادلة الشحنة، وتساعد على جعل النواة مستقرة.');
+        } else if (partType === 'electron') {
+            this.showInfo('الإلكترونات: تدور حول النواة في مستويات طاقة مختلفة على شكل سحابة إلكترونية وشحنتها سالبة.');
+        } else {
+            this.showInfo('جزء من الذرّة');
+        }
     }
 
     scaleAtom(factor) {

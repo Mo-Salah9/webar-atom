@@ -45,6 +45,7 @@ export class AtomModel {
                 isProton ? protonGeometry : neutronGeometry,
                 isProton ? protonMaterial : neutronMaterial
             );
+            particle.userData.type = isProton ? 'proton' : 'neutron';
             
             // Arrange in a rough sphere
             const phi = Math.acos(-1 + (2 * i) / 12);
@@ -93,6 +94,7 @@ export class AtomModel {
                 const electron = new THREE.Mesh(electronGeometry, electronMaterial);
                 
                 electron.userData = {
+                    type: 'electron',
                     shell: shellIndex,
                     angle: (i / shell.electrons) * Math.PI * 2,
                     radius: shell.radius,
@@ -174,6 +176,35 @@ export class AtomModel {
 
     getRotationY() {
         return this.group.rotation.y;
+    }
+
+    // Highlight helpers
+    fadeOthersExcept(selectedObject) {
+        const selected = selectedObject;
+        this.group.traverse((child) => {
+            if (child.isMesh) {
+                // Store original values once
+                if (!child.userData._origMatState) {
+                    child.userData._origMatState = {
+                        transparent: child.material.transparent,
+                        opacity: child.material.opacity
+                    };
+                }
+                const isSelected = child === selected || child === selected.parent || selected.parent?.children?.includes(child) && false;
+                child.material.transparent = true;
+                child.material.opacity = isSelected ? 1.0 : 0.15;
+            }
+        });
+    }
+
+    clearFades() {
+        this.group.traverse((child) => {
+            if (child.isMesh && child.userData._origMatState) {
+                const s = child.userData._origMatState;
+                child.material.transparent = s.transparent;
+                child.material.opacity = s.opacity;
+            }
+        });
     }
 
     dispose() {
