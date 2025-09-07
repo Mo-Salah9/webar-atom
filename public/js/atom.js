@@ -327,6 +327,9 @@ export class AtomModel {
         // Rotate entire nucleus group slowly
         this.nucleusGroup.rotation.y += 0.005;
         this.nucleusGroup.rotation.x += 0.003;
+        
+        // Update opacity animations
+        this.updateOpacityAnimations(deltaTime);
     }
 
     updateElectronTrail(electron) {

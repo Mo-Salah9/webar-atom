@@ -43,6 +43,11 @@ export class InteractionManager {
         this.initialTouchX = 0;
         this.rotationSensitivity = 0.01; // radians per pixel
 
+        // Particle highlighting
+        this.lastClickTime = 0;
+        this.clickDelay = 300; // ms
+        this.currentHighlight = null;
+
         this.setupControllers();
         this.setupTouchEvents();
     }
@@ -82,7 +87,7 @@ export class InteractionManager {
             this.controllerGrips.push(controllerGrip);
         }
         
-        console.log('✅ WebXR controllers setup - handles touch automatically');
+        console.log('WebXR controllers setup - handles touch automatically');
     }
 
     setupTouchEvents() {
@@ -119,8 +124,34 @@ export class InteractionManager {
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         if (this.activePointers.size === 1) {
-            // Begin rotation if touching the atom
+            // Check if clicking on a specific particle
             const { x, y } = this.activePointers.get(event.pointerId);
+            const intersection = this.raycastFromScreen(x, y);
+            
+            if (intersection.length > 0) {
+                const clickedObject = intersection[0].object;
+                const particleType = this.atom.getParticleTypeFromObject(clickedObject);
+                
+                if (particleType) {
+                    // Handle particle highlighting
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastClickTime < this.clickDelay && this.currentHighlight === particleType) {
+                        // Double click - reset highlighting
+                        this.atom.resetOpacities();
+                        this.currentHighlight = null;
+                        console.log('Reset particle highlighting');
+                    } else {
+                        // Single click - highlight particle type
+                        this.atom.highlightParticleType(particleType);
+                        this.currentHighlight = particleType;
+                        console.log(`Highlighted: ${particleType}`);
+                    }
+                    this.lastClickTime = currentTime;
+                    return; // Don't start rotation if we clicked a particle
+                }
+            }
+            
+            // Begin rotation if touching the atom but not a specific particle
             if (this.isTouchOnAtom(x, y)) {
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
@@ -194,18 +225,22 @@ export class InteractionManager {
         }
     }
 
-    // Helpers for touch interactions
-    isTouchOnAtom(x, y) {
-        const intersect = this.raycastFromScreen(x, y);
-        return intersect.length > 0;
-    }
-
+    // Enhanced raycasting for particle detection
     raycastFromScreen(x, y) {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.ndc.x = ((x - rect.left) / rect.width) * 2 - 1;
         this.ndc.y = -((y - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.ndc, this.camera);
-        return this.raycaster.intersectObject(this.atom.getGroup(), true);
+        
+        // Raycast against all atom components
+        const intersections = this.raycaster.intersectObject(this.atom.getGroup(), true);
+        return intersections;
+    }
+
+    // Helpers for touch interactions
+    isTouchOnAtom(x, y) {
+        const intersect = this.raycastFromScreen(x, y);
+        return intersect.length > 0;
     }
 
     screenPointToPlaneIntersection(x, y, plane) {
@@ -242,13 +277,31 @@ export class InteractionManager {
         const intersections = this.getIntersections(controller);
 
         if (intersections.length > 0) {
+            const clickedObject = intersections[0].object;
+            const particleType = this.atom.getParticleTypeFromObject(clickedObject);
+            
+            if (particleType) {
+                // Handle particle highlighting with controller
+                if (this.currentHighlight === particleType) {
+                    this.atom.resetOpacities();
+                    this.currentHighlight = null;
+                    console.log('Controller: Reset particle highlighting');
+                } else {
+                    this.atom.highlightParticleType(particleType);
+                    this.currentHighlight = particleType;
+                    console.log(`Controller: Highlighted ${particleType}`);
+                }
+                return;
+            }
+            
+            // Start grabbing if not clicking on a specific particle
             this.isGrabbing = true;
             this.grabController = controller;
             this.initialControllerPosition.copy(controller.position);
             this.initialAtomPosition.copy(this.atom.getGroup().position);
             
             controller.userData.isSelecting = true;
-            console.log('🎯 Atom grabbed via WebXR');
+            console.log('Atom grabbed via WebXR');
         }
     }
 
@@ -259,7 +312,7 @@ export class InteractionManager {
         if (this.grabController === controller) {
             this.isGrabbing = false;
             this.grabController = null;
-            console.log('✋ Atom released');
+            console.log('Atom released');
         }
     }
 
@@ -276,7 +329,7 @@ export class InteractionManager {
                 this.scalingControllers[1].position
             );
             this.initialScale = this.atom.getScale();
-            console.log('📏 Two-handed scaling started');
+            console.log('Two-handed scaling started');
         }
     }
 
@@ -291,7 +344,7 @@ export class InteractionManager {
 
         if (this.scalingControllers.length < 2) {
             this.isScaling = false;
-            console.log('📏 Scaling ended');
+            console.log('Scaling ended');
         }
     }
 
@@ -358,6 +411,8 @@ export class InteractionManager {
         
         this.atom.setScale(1);
         this.atom.setPosition(0, 0, -1);
+        this.atom.resetOpacities();
+        this.currentHighlight = null;
     }
 
     dispose() {
@@ -371,6 +426,6 @@ export class InteractionManager {
             target.removeEventListener('pointerout', this._onPointerUp);
             target.removeEventListener('pointerleave', this._onPointerUp);
         }
-        console.log('🧹 InteractionManager disposed');
+        console.log('InteractionManager disposed');
     }
 }
