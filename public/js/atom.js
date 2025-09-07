@@ -6,149 +6,346 @@ export class AtomModel {
         this.electrons = [];
         this.nucleus = [];
         this.orbits = [];
+        this.electronTrails = [];
         
         this.animationSpeed = 0.02;
         this.baseScale = 1;
+        this.time = 0;
         
         this.createAtom();
     }
 
     createAtom() {
         this.createNucleus();
+        this.createElectronOrbits();
         this.createElectrons();
-        this.createOrbits();
+        this.addNucleusGlow();
     }
 
     createNucleus() {
         const nucleusGroup = new THREE.Group();
         
-        // Create protons (red)
-        const protonGeometry = new THREE.SphereGeometry(0.03, 12, 12);
+        // Create protons (bright red with metallic finish)
+        const protonGeometry = new THREE.SphereGeometry(0.04, 16, 16);
         const protonMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xff4444,
-            metalness: 0.3,
-            roughness: 0.4
+            color: 0xff3333,
+            metalness: 0.6,
+            roughness: 0.2,
+            emissive: 0x441111
         });
 
-        // Create neutrons (blue)
-        const neutronGeometry = new THREE.SphereGeometry(0.03, 12, 12);
+        // Create neutrons (blue-white with metallic finish)
+        const neutronGeometry = new THREE.SphereGeometry(0.04, 16, 16);
         const neutronMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x4444ff,
-            metalness: 0.3,
-            roughness: 0.4
+            color: 0x6699ff,
+            metalness: 0.6,
+            roughness: 0.2,
+            emissive: 0x112244
         });
 
-        // Add 6 protons and 6 neutrons for carbon atom
-        for (let i = 0; i < 12; i++) {
+        // Arrange nucleus particles in a more realistic cluster
+        const positions = [
+            // Inner core
+            [0, 0, 0],
+            [0.06, 0, 0],
+            [0, 0.06, 0],
+            [0, 0, 0.06],
+            [-0.06, 0, 0],
+            [0, -0.06, 0],
+            [0, 0, -0.06],
+            // Outer ring
+            [0.08, 0.08, 0],
+            [-0.08, 0.08, 0],
+            [0.08, -0.08, 0],
+            [-0.08, -0.08, 0],
+            [0, 0.08, 0.08],
+            [0, -0.08, -0.08]
+        ];
+
+        for (let i = 0; i < 13; i++) {
             const isProton = i < 6;
             const particle = new THREE.Mesh(
                 isProton ? protonGeometry : neutronGeometry,
                 isProton ? protonMaterial : neutronMaterial
             );
             
-            // Arrange in a rough sphere
-            const phi = Math.acos(-1 + (2 * i) / 12);
-            const theta = Math.sqrt(12 * Math.PI) * phi;
+            if (positions[i]) {
+                particle.position.set(...positions[i]);
+            } else {
+                // Random positioning for any extra particles
+                const phi = Math.acos(-1 + (2 * i) / 13);
+                const theta = Math.sqrt(13 * Math.PI) * phi;
+                particle.position.set(
+                    0.05 * Math.cos(theta) * Math.sin(phi),
+                    0.05 * Math.sin(theta) * Math.sin(phi),
+                    0.05 * Math.cos(phi)
+                );
+            }
             
-            particle.position.set(
-                0.04 * Math.cos(theta) * Math.sin(phi),
-                0.04 * Math.sin(theta) * Math.sin(phi),
-                0.04 * Math.cos(phi)
-            );
+            particle.userData.originalPosition = particle.position.clone();
+            particle.userData.vibrationPhase = Math.random() * Math.PI * 2;
             
             nucleusGroup.add(particle);
             this.nucleus.push(particle);
         }
 
-        // Add nucleus glow effect
-        const glowGeometry = new THREE.SphereGeometry(0.08, 16, 16);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffff44,
-            transparent: true,
-            opacity: 0.2
-        });
-        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-        nucleusGroup.add(glow);
-
         this.group.add(nucleusGroup);
+        this.nucleusGroup = nucleusGroup;
     }
 
-    createElectrons() {
-        const electronGeometry = new THREE.SphereGeometry(0.02, 12, 12);
-        const electronMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x44ff44,
-            metalness: 0.5,
-            roughness: 0.3,
-            emissive: 0x002200
+    addNucleusGlow() {
+        // Inner glow
+        const innerGlowGeometry = new THREE.SphereGeometry(0.12, 32, 32);
+        const innerGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.BackSide
         });
+        const innerGlow = new THREE.Mesh(innerGlowGeometry, innerGlowMaterial);
+        this.nucleusGroup.add(innerGlow);
 
-        // Create electron shells
-        const shells = [
-            { radius: 0.2, electrons: 2 },
-            { radius: 0.35, electrons: 4 }
-        ];
+        // Outer glow
+        const outerGlowGeometry = new THREE.SphereGeometry(0.18, 32, 32);
+        const outerGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffdd44,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.BackSide
+        });
+        const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+        this.nucleusGroup.add(outerGlow);
+    }
 
-        shells.forEach((shell, shellIndex) => {
-            for (let i = 0; i < shell.electrons; i++) {
-                const electron = new THREE.Mesh(electronGeometry, electronMaterial);
-                
-                electron.userData = {
-                    shell: shellIndex,
-                    angle: (i / shell.electrons) * Math.PI * 2,
-                    radius: shell.radius,
-                    speed: 0.02 / (shellIndex + 1), // Inner shells move faster
-                    inclination: shellIndex * Math.PI / 4 // Different orbital planes
-                };
-                
-                this.group.add(electron);
-                this.electrons.push(electron);
+    createElectronOrbits() {
+        const orbitalConfigs = [
+            { 
+                radius: 0.25, 
+                inclination: 0, 
+                color: 0x44ff88,
+                opacity: 0.4,
+                width: 0.008
+            },
+            { 
+                radius: 0.45, 
+                inclination: Math.PI / 3, 
+                color: 0x4488ff,
+                opacity: 0.35,
+                width: 0.008
+            },
+            { 
+                radius: 0.45, 
+                inclination: -Math.PI / 3, 
+                color: 0xff4488,
+                opacity: 0.35,
+                width: 0.008
+            },
+            { 
+                radius: 0.45, 
+                inclination: Math.PI / 2, 
+                color: 0xffaa44,
+                opacity: 0.35,
+                width: 0.008
             }
-        });
-    }
-
-    createOrbits() {
-        const orbitalRadii = [0.2, 0.35];
+        ];
         
-        orbitalRadii.forEach((radius, index) => {
-            const orbitGeometry = new THREE.RingGeometry(radius - 0.005, radius + 0.005, 64);
+        orbitalConfigs.forEach((config, index) => {
+            // Create orbital ring
+            const orbitGeometry = new THREE.RingGeometry(
+                config.radius - config.width/2, 
+                config.radius + config.width/2, 
+                64
+            );
             const orbitMaterial = new THREE.MeshBasicMaterial({
-                color: 0x888888,
+                color: config.color,
                 transparent: true,
-                opacity: 0.3,
+                opacity: config.opacity,
                 side: THREE.DoubleSide
             });
             
             const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
-            orbit.rotation.x = index * Math.PI / 4; // Different orbital planes
+            
+            // Apply orbital inclination
+            orbit.rotation.x = config.inclination;
+            orbit.rotation.z = index * Math.PI / 6; // Vary the orbital orientations
+            
             this.group.add(orbit);
-            this.orbits.push(orbit);
+            this.orbits.push({
+                mesh: orbit,
+                config: config,
+                rotationSpeed: 0.001 * (index + 1)
+            });
         });
     }
 
+    createElectrons() {
+        const electronGeometry = new THREE.SphereGeometry(0.025, 12, 12);
+        const electronMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x00ff66,
+            metalness: 0.8,
+            roughness: 0.1,
+            emissive: 0x003311,
+            emissiveIntensity: 0.5
+        });
+
+        // Electron configurations matching orbitals
+        const electronConfigs = [
+            // First shell (2 electrons)
+            { 
+                orbital: 0, 
+                angle: 0, 
+                speed: 0.03,
+                phaseOffset: 0 
+            },
+            { 
+                orbital: 0, 
+                angle: Math.PI, 
+                speed: 0.03,
+                phaseOffset: Math.PI 
+            },
+            
+            // Second shell (4 electrons across 3 orbitals)
+            { 
+                orbital: 1, 
+                angle: 0, 
+                speed: 0.02,
+                phaseOffset: 0 
+            },
+            { 
+                orbital: 1, 
+                angle: Math.PI, 
+                speed: 0.02,
+                phaseOffset: Math.PI 
+            },
+            { 
+                orbital: 2, 
+                angle: Math.PI/2, 
+                speed: 0.02,
+                phaseOffset: Math.PI/2 
+            },
+            { 
+                orbital: 3, 
+                angle: 3*Math.PI/2, 
+                speed: 0.02,
+                phaseOffset: 3*Math.PI/2 
+            }
+        ];
+
+        electronConfigs.forEach((config, index) => {
+            const electron = new THREE.Mesh(electronGeometry, electronMaterial);
+            
+            electron.userData = {
+                orbitalIndex: config.orbital,
+                angle: config.angle,
+                speed: config.speed,
+                phaseOffset: config.phaseOffset,
+                trailPoints: []
+            };
+            
+            this.group.add(electron);
+            this.electrons.push(electron);
+
+            // Create electron trail
+            this.createElectronTrail(electron, index);
+        });
+    }
+
+    createElectronTrail(electron, index) {
+        const trailGeometry = new THREE.BufferGeometry();
+        const trailMaterial = new THREE.LineBasicMaterial({
+            color: 0x00ff66,
+            transparent: true,
+            opacity: 0.3,
+            linewidth: 2
+        });
+
+        const trailPositions = new Float32Array(60 * 3); // 20 trail points
+        trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+
+        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        this.group.add(trail);
+        
+        electron.userData.trail = trail;
+        electron.userData.trailPositions = trailPositions;
+        electron.userData.trailIndex = 0;
+    }
+
     animate(deltaTime) {
-        // Animate electrons
-        this.electrons.forEach((electron) => {
-            const userData = electron.userData;
-            userData.angle += userData.speed;
-            
-            // Calculate position with inclination
-            const x = Math.cos(userData.angle) * userData.radius;
-            const y = Math.sin(userData.angle) * userData.radius * Math.sin(userData.inclination);
-            const z = Math.sin(userData.angle) * userData.radius * Math.cos(userData.inclination);
-            
-            electron.position.set(x, y, z);
-        });
-
-        // Gentle nucleus rotation
+        this.time += deltaTime;
+        
+        // Animate nucleus particles with subtle vibration
         this.nucleus.forEach((particle, index) => {
-            particle.rotation.y += 0.005;
-            particle.rotation.x += 0.003;
+            const userData = particle.userData;
+            userData.vibrationPhase += deltaTime * 2;
+            
+            const vibrationScale = 0.003;
+            const vibration = new THREE.Vector3(
+                Math.sin(userData.vibrationPhase) * vibrationScale,
+                Math.cos(userData.vibrationPhase * 1.3) * vibrationScale,
+                Math.sin(userData.vibrationPhase * 0.8) * vibrationScale
+            );
+            
+            particle.position.copy(userData.originalPosition).add(vibration);
+            particle.rotation.x += 0.01;
+            particle.rotation.y += 0.008;
         });
 
-        // Rotate orbits slightly
-        this.orbits.forEach((orbit, index) => {
-            orbit.rotation.z += 0.001 * (index + 1);
+        // Animate electrons along orbitals
+        this.electrons.forEach((electron, index) => {
+            const userData = electron.userData;
+            const orbital = this.orbits[userData.orbitalIndex];
+            
+            if (orbital) {
+                userData.angle += userData.speed;
+                
+                const config = orbital.config;
+                const radius = config.radius;
+                
+                // Calculate electron position with orbital inclination
+                const x = Math.cos(userData.angle) * radius;
+                const y = Math.sin(userData.angle) * radius * Math.sin(config.inclination);
+                const z = Math.sin(userData.angle) * radius * Math.cos(config.inclination);
+                
+                electron.position.set(x, y, z);
+                
+                // Add slight wobble
+                const wobble = 0.01;
+                electron.position.x += Math.sin(this.time * 5 + index) * wobble;
+                electron.position.y += Math.cos(this.time * 3 + index) * wobble;
+                
+                // Update electron trail
+                this.updateElectronTrail(electron);
+            }
         });
+
+        // Rotate orbitals slowly
+        this.orbits.forEach((orbital, index) => {
+            orbital.mesh.rotation.y += orbital.rotationSpeed;
+            orbital.mesh.rotation.z += orbital.rotationSpeed * 0.5;
+        });
+
+        // Rotate entire nucleus group slowly
+        this.nucleusGroup.rotation.y += 0.005;
+        this.nucleusGroup.rotation.x += 0.003;
+    }
+
+    updateElectronTrail(electron) {
+        const userData = electron.userData;
+        const trail = userData.trail;
+        const positions = userData.trailPositions;
+        
+        // Add current position to trail
+        const currentPos = electron.position;
+        const index = userData.trailIndex * 3;
+        
+        positions[index] = currentPos.x;
+        positions[index + 1] = currentPos.y;
+        positions[index + 2] = currentPos.z;
+        
+        userData.trailIndex = (userData.trailIndex + 1) % 20;
+        
+        // Update trail geometry
+        trail.geometry.attributes.position.needsUpdate = true;
     }
 
     setScale(scale) {
