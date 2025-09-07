@@ -45,25 +45,6 @@ export class InteractionManager {
 
         this.setupControllers();
         this.setupTouchEvents();
-
-        // UI Elements
-        this.infoToast = document.getElementById('infoToast');
-        this.challengePanel = document.getElementById('challengePanel');
-        this.summaryPanel = document.getElementById('summaryPanel');
-        this.finishBtn = document.getElementById('finishBtn');
-        if (this.finishBtn) {
-            this.finishBtn.addEventListener('click', () => {
-                if (this.summaryPanel) this.summaryPanel.classList.add('hidden');
-            });
-        }
-
-        // Challenge drag/drop
-        this.cardsRow = document.getElementById('cardsRow');
-        this.dropTargets = Array.from(document.querySelectorAll('.droptarget'));
-        this.draggingEl = null;
-        this.dragStart = { x: 0, y: 0 };
-        this.cardHomePos = new Map();
-        this.setupChallengeDrag();
     }
 
     setupControllers() {
@@ -136,12 +117,6 @@ export class InteractionManager {
         // Record pointer
         event.preventDefault();
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-        // Single-tap highlight when just one finger touches quickly
-        if (this.activePointers.size === 1) {
-            this._tapStartTime = performance.now();
-            this._tapStartPos = { x: event.clientX, y: event.clientY };
-        }
 
         if (this.activePointers.size === 1) {
             // Begin rotation if touching the atom
@@ -216,19 +191,6 @@ export class InteractionManager {
             this.isTouchGrabbing = false;
             this.hasTouchTarget = false;
             this.isTouchRotating = false;
-
-            // Detect tap (short time and minimal movement)
-            if (this._tapStartTime) {
-                const dt = performance.now() - this._tapStartTime;
-                const dx = (event.clientX - (this._tapStartPos?.x || 0));
-                const dy = (event.clientY - (this._tapStartPos?.y || 0));
-                const moved = Math.hypot(dx, dy);
-                if (dt < 250 && moved < 8) {
-                    this.handleTap(event.clientX, event.clientY);
-                }
-                this._tapStartTime = null;
-                this._tapStartPos = null;
-            }
         }
     }
 
@@ -270,8 +232,6 @@ export class InteractionManager {
 
     setAtom(atom) {
         this.atom = atom;
-        // Show initial guidance
-        this.showInfo('هذه هي الذرّة. اضغط على جزء للتعرّف عليه.');
     }
 
     // WebXR Controller Events - handles ALL input (touch, controllers, etc.)
@@ -383,90 +343,6 @@ export class InteractionManager {
         raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
         return raycaster.intersectObject(this.atom.getGroup(), true);
-    }
-
-    // UI helpers
-    showInfo(text) {
-        if (!this.infoToast) return;
-        this.infoToast.textContent = text;
-        this.infoToast.classList.remove('hidden');
-        clearTimeout(this._infoTimeout);
-        this._infoTimeout = setTimeout(() => {
-            if (this.infoToast) this.infoToast.classList.add('hidden');
-        }, 2500);
-    }
-
-    // Screen tap picking for info highlights
-    handleTap(x, y) {
-        if (!this.atom) return;
-        const hits = this.raycastFromScreen(x, y);
-        if (hits.length === 0) {
-            if (this.atom && this.atom.clearFades) this.atom.clearFades();
-            return;
-        }
-        const obj = hits[0].object;
-        if (this.atom && this.atom.fadeOthersExcept) {
-            this.atom.fadeOthersExcept(obj);
-        }
-    }
-
-    // Challenge drag/drop (DOM-based)
-    setupChallengeDrag() {
-        if (!this.cardsRow) return;
-        const cards = Array.from(this.cardsRow.querySelectorAll('.draggable'));
-        cards.forEach((el) => {
-            el.setAttribute('draggable', 'true');
-            el.addEventListener('dragstart', (e) => this.onCardDragStart(e));
-            el.addEventListener('dragend', (e) => this.onCardDragEnd(e));
-        });
-        this.dropTargets.forEach((dt) => {
-            dt.addEventListener('dragover', (e) => { e.preventDefault(); });
-            dt.addEventListener('drop', (e) => this.onCardDrop(e, dt));
-        });
-    }
-
-    onCardDragStart(e) {
-        const el = e.target;
-        this.draggingEl = el;
-        e.dataTransfer.effectAllowed = 'move';
-        // Remember home parent
-        el.dataset.homeIdx = Array.from(el.parentElement.children).indexOf(el).toString();
-    }
-
-    onCardDragEnd(e) {
-        this.draggingEl = null;
-    }
-
-    onCardDrop(e, target) {
-        e.preventDefault();
-        if (!this.draggingEl) return;
-        const key = this.draggingEl.getAttribute('data-key');
-        const accept = target.getAttribute('data-accept');
-
-        const isCorrect =
-            (key === 'proton' && accept === 'nucleus') ||
-            (key === 'neutron' && accept === 'nucleus') ||
-            (key === 'electron' && accept === 'electron-shell');
-
-        if (isCorrect) {
-            target.classList.remove('bad');
-            target.classList.add('ok');
-            target.textContent = (accept === 'nucleus') ? 'النواة ✓' : 'مستويات الطاقة ✓';
-            this.draggingEl.classList.add('hidden');
-            this.showInfo('أحسنت!');
-            // Check completion
-            const remaining = Array.from(this.cardsRow.querySelectorAll('.draggable')).filter(c => !c.classList.contains('hidden'));
-            if (remaining.length === 0) {
-                // Show summary
-                if (this.summaryPanel) this.summaryPanel.classList.remove('hidden');
-            }
-        } else {
-            // Wrong: shake visual via class
-            target.classList.remove('ok');
-            target.classList.add('bad');
-            this.showInfo('فكر جيدًا وحاول مرة أخرى');
-            setTimeout(() => target.classList.remove('bad'), 500);
-        }
     }
 
     scaleAtom(factor) {

@@ -6,8 +6,6 @@ export class AtomModel {
         this.electrons = [];
         this.nucleus = [];
         this.orbits = [];
-        this.protons = [];
-        this.neutrons = [];
         
         this.animationSpeed = 0.02;
         this.baseScale = 1;
@@ -40,28 +38,26 @@ export class AtomModel {
             roughness: 0.4
         });
 
-        // Add 8 protons and 8 neutrons (oxygen-like per requirements)
-        for (let i = 0; i < 16; i++) {
-            const isProton = i < 8;
+        // Add 6 protons and 6 neutrons for carbon atom
+        for (let i = 0; i < 12; i++) {
+            const isProton = i < 6;
             const particle = new THREE.Mesh(
                 isProton ? protonGeometry : neutronGeometry,
                 isProton ? protonMaterial : neutronMaterial
             );
             
             // Arrange in a rough sphere
-            const phi = Math.acos(-1 + (2 * i) / 16);
-            const theta = Math.sqrt(16 * Math.PI) * phi;
+            const phi = Math.acos(-1 + (2 * i) / 12);
+            const theta = Math.sqrt(12 * Math.PI) * phi;
             
             particle.position.set(
                 0.04 * Math.cos(theta) * Math.sin(phi),
                 0.04 * Math.sin(theta) * Math.sin(phi),
                 0.04 * Math.cos(phi)
             );
-            particle.userData.partType = isProton ? 'proton' : 'neutron';
             
             nucleusGroup.add(particle);
             this.nucleus.push(particle);
-            if (isProton) this.protons.push(particle); else this.neutrons.push(particle);
         }
 
         // Add nucleus glow effect
@@ -86,10 +82,10 @@ export class AtomModel {
             emissive: 0x002200
         });
 
-        // Create electron shells (2 in first, 6 in second)
+        // Create electron shells
         const shells = [
             { radius: 0.2, electrons: 2 },
-            { radius: 0.35, electrons: 6 }
+            { radius: 0.35, electrons: 4 }
         ];
 
         shells.forEach((shell, shellIndex) => {
@@ -101,8 +97,7 @@ export class AtomModel {
                     angle: (i / shell.electrons) * Math.PI * 2,
                     radius: shell.radius,
                     speed: 0.02 / (shellIndex + 1), // Inner shells move faster
-                    inclination: shellIndex * Math.PI / 4, // Different orbital planes
-                    partType: 'electron'
+                    inclination: shellIndex * Math.PI / 4 // Different orbital planes
                 };
                 
                 this.group.add(electron);
@@ -153,78 +148,6 @@ export class AtomModel {
         // Rotate orbits slightly
         this.orbits.forEach((orbit, index) => {
             orbit.rotation.z += 0.001 * (index + 1);
-        });
-    }
-
-    // Highlighting helpers
-    highlightObject(object3D) {
-        if (!object3D || !object3D.material) return;
-        const mat = object3D.material;
-        if (!object3D.userData._orig) {
-            object3D.userData._orig = {
-                emissive: mat.emissive ? mat.emissive.clone() : null,
-                scale: object3D.scale.clone()
-            };
-        }
-        if (mat.emissive) {
-            mat.emissive.setHex(0xffff44);
-        }
-        object3D.scale.multiplyScalar(1.25);
-        clearTimeout(object3D.userData._hlTimeout);
-        object3D.userData._hlTimeout = setTimeout(() => this.clearHighlight(object3D), 800);
-    }
-
-    clearHighlight(object3D) {
-        if (!object3D || !object3D.userData || !object3D.userData._orig) return;
-        const mat = object3D.material;
-        const orig = object3D.userData._orig;
-        if (mat && mat.emissive && orig.emissive) {
-            mat.emissive.copy(orig.emissive);
-        }
-        if (orig.scale) {
-            object3D.scale.copy(orig.scale);
-        }
-    }
-
-    // Fade helpers
-    getAllParts() {
-        const parts = [];
-        this.group.traverse((child) => {
-            if (child.isMesh) parts.push(child);
-        });
-        return parts;
-    }
-
-    fadeOthersExcept(target) {
-        const parts = this.getAllParts();
-        parts.forEach((mesh) => {
-            const material = mesh.material;
-            if (!material) return;
-            if (!mesh.userData._origFade) {
-                mesh.userData._origFade = {
-                    transparent: material.transparent,
-                    opacity: material.opacity
-                };
-            }
-            if (mesh === target) {
-                material.transparent = mesh.userData._origFade.transparent;
-                material.opacity = 1.0;
-            } else {
-                material.transparent = true;
-                material.opacity = 0.3;
-            }
-        });
-    }
-
-    clearFades() {
-        const parts = this.getAllParts();
-        parts.forEach((mesh) => {
-            const material = mesh.material;
-            const orig = mesh.userData._origFade;
-            if (material && orig) {
-                material.transparent = orig.transparent;
-                material.opacity = orig.opacity;
-            }
         });
     }
 
