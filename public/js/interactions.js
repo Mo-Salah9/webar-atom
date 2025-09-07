@@ -30,6 +30,8 @@ export class InteractionManager {
         this.raycaster = new THREE.Raycaster();
         this.ndc = new THREE.Vector2();
         this.initialTouchDistance = 0;
+        this.initialTouchAngle = 0;
+        this.initialRotationY = 0;
 
         this.setupControllers();
         this.setupTouchEvents();
@@ -122,7 +124,9 @@ export class InteractionManager {
             // Start pinch scaling
             const points = Array.from(this.activePointers.values());
             this.initialTouchDistance = this.distance2(points[0], points[1]);
+            this.initialTouchAngle = this.angle2(points[0], points[1]);
             this.initialScale = this.atom.getScale();
+            this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
             this.isTouchGrabbing = false; // disable drag while pinching
         }
     }
@@ -146,10 +150,19 @@ export class InteractionManager {
             // Pinch to scale
             const points = Array.from(this.activePointers.values());
             const currentDistance = this.distance2(points[0], points[1]);
+            const currentAngle = this.angle2(points[0], points[1]);
             if (this.initialTouchDistance > 0) {
                 const ratio = currentDistance / this.initialTouchDistance;
                 const newScale = Math.max(0.1, Math.min(5, this.initialScale * ratio));
                 this.atom.setScale(newScale);
+            }
+            // Two-finger twist to rotate around Y
+            const deltaAngle = currentAngle - this.initialTouchAngle;
+            const newY = this.initialRotationY + deltaAngle;
+            if (this.atom.setRotationY) {
+                this.atom.setRotationY(newY);
+            } else {
+                this.atom.getGroup().rotation.y = newY;
             }
         }
     }
@@ -196,6 +209,12 @@ export class InteractionManager {
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         return Math.hypot(dx, dy);
+    }
+
+    angle2(p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        return Math.atan2(dy, dx);
     }
 
     setAtom(atom) {

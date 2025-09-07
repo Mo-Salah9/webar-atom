@@ -168,6 +168,14 @@ export class AtomModel {
         return this.group;
     }
 
+    setRotationY(angleRadians) {
+        this.group.rotation.y = angleRadians;
+    }
+
+    getRotationY() {
+        return this.group.rotation.y;
+    }
+
     dispose() {
         // Clean up geometries and materials
         this.group.traverse((child) => {
