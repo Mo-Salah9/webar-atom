@@ -101,7 +101,11 @@ class WebARAtomApp {
     }
 
     createReticle() {
-        // Create placement reticle
+        // Create placement reticle (group gets the AR plane pose; ring is rotated flat)
+        this.reticle = new THREE.Group();
+        this.reticle.matrixAutoUpdate = false;
+        this.reticle.visible = false;
+
         const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32);
         const reticleMaterial = new THREE.MeshBasicMaterial({
             color: 0x00ff00,
@@ -109,10 +113,11 @@ class WebARAtomApp {
             opacity: 0.8,
             side: THREE.DoubleSide
         });
-        
-        this.reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
-        this.reticle.matrixAutoUpdate = false;
-        this.reticle.visible = false;
+
+        const ring = new THREE.Mesh(reticleGeometry, reticleMaterial);
+        // Rotate ring to lie on XZ plane (so its normal points up +Y)
+        ring.rotation.x = -Math.PI / 2;
+        this.reticle.add(ring);
         this.scene.add(this.reticle);
 
         // Add pulsing animation to reticle
