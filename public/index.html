@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Atom Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .ar-button {
+            background: linear-gradient(45deg, #f31e1e, #4ECDC4);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: all;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .ar-button:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+        }
+
+        .ar-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            pointer-events: all;
+            max-width: 400px;
+        }
+
+        .instructions h3 {
+            margin: 0 0 15px 0;
+            color: #4ECDC4;
+        }
+
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            pointer-events: all;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .instructions {
+                font-size: 14px;
+                padding: 15px;
+            }
+            
+            .ar-button {
+                font-size: 16px;
+                padding: 12px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="ui-overlay">
+        <div class="instructions" id="instructions">
+            <h3>🚀 WebAR Atom Visualizer</h3>
+            <ul>
+                <li>📱 Point your camera at a flat surface</li>
+                <li>🎯 Tap when you see the green ring</li>
+                <li>📏 Use controllers or pinch to scale</li>
+                <li>🔄 Rotate with two-finger twist</li>
+                <li>👆 Single tap to move atom</li>
+            </ul>
+        </div>
+        
+        <div class="controls hidden" id="controls">
+            <button class="control-btn" id="scaleUp" title="Scale Up">+</button>
+            <button class="control-btn" id="scaleDown" title="Scale Down">-</button>
+            <button class="control-btn" id="reset" title="Reset">⟲</button>
+        </div>
+        
+        <button class="ar-button" id="arButton">Start AR Experience</button>
+    </div>
+
+    <script src="js/webxr-polyfill.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
