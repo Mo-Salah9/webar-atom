@@ -401,19 +401,12 @@ export class InteractionManager {
         if (!this.atom) return;
         const hits = this.raycastFromScreen(x, y);
         if (hits.length === 0) {
-            this.showInfo('اضغط على أحد أجزاء الذرّة للتعرف عليه.');
+            if (this.atom && this.atom.clearFades) this.atom.clearFades();
             return;
         }
         const obj = hits[0].object;
-        const part = obj.userData.partType;
-        if (!part) return;
-        this.atom.highlightObject(obj);
-        if (part === 'proton' || part === 'neutron') {
-            this.showInfo('هنا تقع البروتونات والنيوترونات.');
-        } else if (part === 'electron') {
-            this.showInfo('الإلكترونات تدور حول النواة.');
-        } else {
-            this.showInfo('هذه هي الذرّة.');
+        if (this.atom && this.atom.fadeOthersExcept) {
+            this.atom.fadeOthersExcept(obj);
         }
     }
 

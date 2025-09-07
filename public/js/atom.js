@@ -186,6 +186,48 @@ export class AtomModel {
         }
     }
 
+    // Fade helpers
+    getAllParts() {
+        const parts = [];
+        this.group.traverse((child) => {
+            if (child.isMesh) parts.push(child);
+        });
+        return parts;
+    }
+
+    fadeOthersExcept(target) {
+        const parts = this.getAllParts();
+        parts.forEach((mesh) => {
+            const material = mesh.material;
+            if (!material) return;
+            if (!mesh.userData._origFade) {
+                mesh.userData._origFade = {
+                    transparent: material.transparent,
+                    opacity: material.opacity
+                };
+            }
+            if (mesh === target) {
+                material.transparent = mesh.userData._origFade.transparent;
+                material.opacity = 1.0;
+            } else {
+                material.transparent = true;
+                material.opacity = 0.3;
+            }
+        });
+    }
+
+    clearFades() {
+        const parts = this.getAllParts();
+        parts.forEach((mesh) => {
+            const material = mesh.material;
+            const orig = mesh.userData._origFade;
+            if (material && orig) {
+                material.transparent = orig.transparent;
+                material.opacity = orig.opacity;
+            }
+        });
+    }
+
     setScale(scale) {
         this.group.scale.setScalar(scale);
         this.baseScale = scale;
