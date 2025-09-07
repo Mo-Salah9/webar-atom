@@ -298,8 +298,18 @@ export class InteractionManager {
     dispose() {
         // Clean up event listeners and resources
         const canvas = this.renderer.domElement;
+        
+        // Remove all touch event listeners
         canvas.removeEventListener('touchstart', this.onTouchStart);
         canvas.removeEventListener('touchmove', this.onTouchMove);
         canvas.removeEventListener('touchend', this.onTouchEnd);
+        canvas.removeEventListener('touchcancel', this.onTouchEnd);
+        canvas.removeEventListener('contextmenu', this.onContextMenu);
+        
+        // Remove mouse event listeners
+        canvas.removeEventListener('mousedown', this.onMouseDown);
+        canvas.removeEventListener('mousemove', this.onMouseMove);
+        canvas.removeEventListener('mouseup', this.onMouseUp);
+        canvas.removeEventListener('wheel', this.onWheel);
     }
 }
