@@ -44,9 +44,9 @@ class WebARAtomApp {
             
             this.animate();
             
-            console.log('WebAR Atom App initialized successfully');
+            console.log('âœ… WebAR Atom App initialized successfully');
         } catch (error) {
-            console.error('Failed to initialize WebAR Atom App:', error);
+            console.error('âŒ Failed to initialize WebAR Atom App:', error);
             this.showError('Failed to initialize AR. Please check browser compatibility.');
         }
     }
@@ -148,13 +148,13 @@ class WebARAtomApp {
 
         // AR session events
         this.renderer.xr.addEventListener('sessionstart', () => {
-            console.log('AR session started');
+            console.log('ðŸš€ AR session started');
             this.isARActive = true;
             this.hideInstructions();
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
-            console.log('AR session ended');
+            console.log('ðŸ›‘ AR session ended');
             this.isARActive = false;
             this.atomPlaced = false;
             this.showInstructions();
@@ -192,94 +192,30 @@ class WebARAtomApp {
     }
 
     placeAtom() {
-        console.log('Placing atom...');
+        console.log('ðŸŽ¯ Placing atom');
         
-        try {
-            // Create atom model
-            this.atom = new AtomModel();
-            console.log('Atom model created');
-            
-            // Get the atom group
-            const atomGroup = this.atom.getGroup();
-            console.log('Atom group retrieved:', atomGroup);
-            
-            // Position atom at reticle location
-            if (this.reticle && this.reticle.matrix) {
-                const position = new THREE.Vector3();
-                position.setFromMatrixPosition(this.reticle.matrix);
-                
-                // Add a small offset above the surface
-                position.y += 0.1;
-                
-                atomGroup.position.copy(position);
-                console.log('Atom positioned at:', position);
-            } else {
-                // Fallback position if reticle is not available
-                atomGroup.position.set(0, 0.1, -1);
-                console.log('Using fallback position');
-            }
-            
-            // Set initial scale - make it more visible
-            this.atom.setScale(0.8);
-            console.log('Atom scale set to 0.8');
-            
-            // Ensure atom is visible
-            atomGroup.visible = true;
-            
-            // Add to scene
-            this.scene.add(atomGroup);
-            console.log('Atom added to scene');
-            
-            // Verify atom is in scene
-            console.log('Scene children count:', this.scene.children.length);
-            console.log('Atom in scene:', this.scene.children.includes(atomGroup));
-            
-            // Setup interactions
-            this.interactionManager.setAtom(this.atom);
-            console.log('Interactions setup');
-            
-            // Hide reticle and update state
-            this.reticle.visible = false;
-            this.atomPlaced = true;
-            
-            // Stop hit testing
-            this.hitTestSource = null;
-            this.hitTestSourceRequested = false;
-            
-            console.log('Atom placed successfully');
-            
-            // Add a visual confirmation
-            this.showMessage('Atom placed! Tap particles to highlight them.');
-            
-        } catch (error) {
-            console.error('Error placing atom:', error);
-            this.showError('Failed to place atom. Please try again.');
-        }
-    }
-
-    showMessage(text) {
-        const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 255, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-            font-size: 14px;
-        `;
-        messageDiv.textContent = text;
-        document.body.appendChild(messageDiv);
+        // Create atom model
+        this.atom = new AtomModel();
         
-        // Remove after 3 seconds
-        setTimeout(() => {
-            if (messageDiv.parentElement) {
-                messageDiv.parentElement.removeChild(messageDiv);
-            }
-        }, 3000);
+        // Position atom at reticle location
+        const atomGroup = this.atom.getGroup();
+        atomGroup.position.setFromMatrixPosition(this.reticle.matrix);
+        atomGroup.scale.setScalar(0.5); // Start smaller for mobile screens
+        
+        this.scene.add(atomGroup);
+        
+        // Setup interactions
+        this.interactionManager.setAtom(this.atom);
+        
+        // Hide reticle and update state
+        this.reticle.visible = false;
+        this.atomPlaced = true;
+        
+        // Stop hit testing
+        this.hitTestSource = null;
+        this.hitTestSourceRequested = false;
+        
+        console.log('âœ… Atom placed successfully');
     }
 
     onWindowResize() {
@@ -382,7 +318,7 @@ class WebARAtomApp {
 
     updatePerformanceStats() {
         const info = this.renderer.info;
-        console.log(`Performance - Triangles: ${info.render.triangles}, Calls: ${info.render.calls}, FPS: ~${Math.round(1000/this.clock.getDelta())}`);
+        console.log(`ðŸ“Š Performance - Triangles: ${info.render.triangles}, Calls: ${info.render.calls}, FPS: ~${Math.round(1000/this.clock.getDelta())}`);
     }
 
     showInstructions() {
@@ -415,7 +351,7 @@ class WebARAtomApp {
             max-width: 300px;
         `;
         errorDiv.innerHTML = `
-            <h3>Error</h3>
+            <h3>âš ï¸ Error</h3>
             <p>${message}</p>
             <button onclick="this.parentElement.remove()" 
                     style="background: white; color: red; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">
@@ -438,28 +374,28 @@ class WebARAtomApp {
         // Remove event listeners
         window.removeEventListener('resize', this.onWindowResize);
         
-        console.log('WebAR Atom App disposed');
+        console.log('ðŸ§¹ WebAR Atom App disposed');
     }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Starting WebAR Atom App...');
+    console.log('ðŸš€ Starting WebAR Atom App...');
     
     // Check WebXR support
     if (navigator.xr) {
         navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
             if (supported) {
-                console.log('WebXR AR supported');
+                console.log('âœ… WebXR AR supported');
                 new WebARAtomApp();
             } else {
-                console.warn('WebXR AR not supported');
+                console.warn('âš ï¸ WebXR AR not supported');
                 document.getElementById('arButton').textContent = 'AR Not Supported';
                 document.getElementById('arButton').disabled = true;
             }
         });
     } else {
-        console.warn('WebXR not available');
+        console.warn('âš ï¸ WebXR not available');
         document.getElementById('arButton').textContent = 'WebXR Not Available';
         document.getElementById('arButton').disabled = true;
     }

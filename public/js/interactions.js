@@ -43,11 +43,6 @@ export class InteractionManager {
         this.initialTouchX = 0;
         this.rotationSensitivity = 0.01; // radians per pixel
 
-        // Particle highlighting
-        this.lastClickTime = 0;
-        this.clickDelay = 300; // ms
-        this.currentHighlight = null;
-
         this.setupControllers();
         this.setupTouchEvents();
     }
@@ -124,34 +119,8 @@ export class InteractionManager {
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         if (this.activePointers.size === 1) {
-            // Check if clicking on a specific particle
+            // Begin rotation if touching the atom
             const { x, y } = this.activePointers.get(event.pointerId);
-            const intersection = this.raycastFromScreen(x, y);
-            
-            if (intersection.length > 0) {
-                const clickedObject = intersection[0].object;
-                const particleType = this.atom.getParticleTypeFromObject(clickedObject);
-                
-                if (particleType) {
-                    // Handle particle highlighting
-                    const currentTime = Date.now();
-                    if (currentTime - this.lastClickTime < this.clickDelay && this.currentHighlight === particleType) {
-                        // Double click - reset highlighting
-                        this.atom.resetOpacities();
-                        this.currentHighlight = null;
-                        console.log('Reset particle highlighting');
-                    } else {
-                        // Single click - highlight particle type
-                        this.atom.highlightParticleType(particleType);
-                        this.currentHighlight = particleType;
-                        console.log(`Highlighted: ${particleType}`);
-                    }
-                    this.lastClickTime = currentTime;
-                    return; // Don't start rotation if we clicked a particle
-                }
-            }
-            
-            // Begin rotation if touching the atom but not a specific particle
             if (this.isTouchOnAtom(x, y)) {
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
@@ -225,22 +194,18 @@ export class InteractionManager {
         }
     }
 
-    // Enhanced raycasting for particle detection
+    // Helpers for touch interactions
+    isTouchOnAtom(x, y) {
+        const intersect = this.raycastFromScreen(x, y);
+        return intersect.length > 0;
+    }
+
     raycastFromScreen(x, y) {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.ndc.x = ((x - rect.left) / rect.width) * 2 - 1;
         this.ndc.y = -((y - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.ndc, this.camera);
-        
-        // Raycast against all atom components
-        const intersections = this.raycaster.intersectObject(this.atom.getGroup(), true);
-        return intersections;
-    }
-
-    // Helpers for touch interactions
-    isTouchOnAtom(x, y) {
-        const intersect = this.raycastFromScreen(x, y);
-        return intersect.length > 0;
+        return this.raycaster.intersectObject(this.atom.getGroup(), true);
     }
 
     screenPointToPlaneIntersection(x, y, plane) {
@@ -277,24 +242,6 @@ export class InteractionManager {
         const intersections = this.getIntersections(controller);
 
         if (intersections.length > 0) {
-            const clickedObject = intersections[0].object;
-            const particleType = this.atom.getParticleTypeFromObject(clickedObject);
-            
-            if (particleType) {
-                // Handle particle highlighting with controller
-                if (this.currentHighlight === particleType) {
-                    this.atom.resetOpacities();
-                    this.currentHighlight = null;
-                    console.log('Controller: Reset particle highlighting');
-                } else {
-                    this.atom.highlightParticleType(particleType);
-                    this.currentHighlight = particleType;
-                    console.log(`Controller: Highlighted ${particleType}`);
-                }
-                return;
-            }
-            
-            // Start grabbing if not clicking on a specific particle
             this.isGrabbing = true;
             this.grabController = controller;
             this.initialControllerPosition.copy(controller.position);
@@ -411,8 +358,6 @@ export class InteractionManager {
         
         this.atom.setScale(1);
         this.atom.setPosition(0, 0, -1);
-        this.atom.resetOpacities();
-        this.currentHighlight = null;
     }
 
     dispose() {

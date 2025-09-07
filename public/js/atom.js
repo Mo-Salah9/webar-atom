@@ -327,9 +327,6 @@ export class AtomModel {
         // Rotate entire nucleus group slowly
         this.nucleusGroup.rotation.y += 0.005;
         this.nucleusGroup.rotation.x += 0.003;
-        
-        // Update opacity animations
-        this.updateOpacityAnimations(deltaTime);
     }
 
     updateElectronTrail(electron) {
@@ -352,15 +349,8 @@ export class AtomModel {
     }
 
     setScale(scale) {
-        console.log(`Setting atom scale to: ${scale}`);
         this.group.scale.setScalar(scale);
         this.baseScale = scale;
-        
-        // Ensure the atom is visible
-        this.group.visible = true;
-        
-        // Debug: log the actual scale
-        console.log(`Actual atom scale: ${this.group.scale.x}, ${this.group.scale.y}, ${this.group.scale.z}`);
     }
 
     getScale() {
