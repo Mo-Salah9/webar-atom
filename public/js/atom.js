@@ -280,7 +280,7 @@ export class AtomModel {
         electron.userData.trailIndex = 0;
     }
 
-    // Fading-based highlight helpers
+    // Glow target, dim everything else
     highlightKind(kind, intensity = 1.0) {
         // Build keep set for the target kind
         const keepSet = new Set();
@@ -302,7 +302,7 @@ export class AtomModel {
             });
         }
         
-        // Apply fading: keep target at full opacity, fade everything else
+        // Apply glow to target, dim everything else
         this._selectionKeepSet = keepSet;
         this.group.traverse((obj) => {
             const material = obj.material;
@@ -318,11 +318,34 @@ export class AtomModel {
                 if (mat.userData._origOpacity === undefined) {
                     mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
                 }
+                if (mat.userData._origEmissive === undefined) {
+                    mat.userData._origEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000);
+                }
+                if (mat.userData._origColor === undefined) {
+                    mat.userData._origColor = mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
+                }
                 
-                // Ensure transparency enabled
                 mat.transparent = true;
-                // Keep target fully visible, fade others to 0.5 opacity
-                mat.opacity = shouldKeep ? 1.0 : 0.5;
+                
+                if (shouldKeep) {
+                    // GLOW: Make target bright and glowing
+                    mat.opacity = 1.0;
+                    if (mat.emissive) {
+                        mat.emissive.setHex(0x444444); // Add glow
+                    }
+                    if (mat.color) {
+                        mat.color.multiplyScalar(1.3); // Brighten color
+                    }
+                } else {
+                    // DIM: Make others dark and transparent
+                    mat.opacity = 0.3;
+                    if (mat.emissive) {
+                        mat.emissive.setHex(0x000000); // Remove any glow
+                    }
+                    if (mat.color) {
+                        mat.color.multiplyScalar(0.4); // Darken color
+                    }
+                }
             });
         });
         
@@ -503,6 +526,16 @@ export class AtomModel {
                 }
                 if (mat.userData && mat.userData._origTransparent !== undefined) {
                     mat.transparent = mat.userData._origTransparent;
+                }
+                if (mat.userData && mat.userData._origEmissive) {
+                    if (mat.emissive) {
+                        mat.emissive.copy(mat.userData._origEmissive);
+                    }
+                }
+                if (mat.userData && mat.userData._origColor) {
+                    if (mat.color) {
+                        mat.color.copy(mat.userData._origColor);
+                    }
                 }
             });
         });
