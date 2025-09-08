@@ -27,22 +27,20 @@ export class AtomModel {
     createNucleus() {
         const nucleusGroup = new THREE.Group();
         
-        // Create protons (bright red with metallic finish)
+        // Create protons (bright red)
         const protonGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-        const protonMaterial = new THREE.MeshStandardMaterial({ 
+        const protonMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xff3333,
-            metalness: 0.6,
-            roughness: 0.2,
-            emissive: 0x441111
+            transparent: true,
+            opacity: 1.0
         });
 
-        // Create neutrons (blue-white with metallic finish)
+        // Create neutrons (blue-white)
         const neutronGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-        const neutronMaterial = new THREE.MeshStandardMaterial({ 
+        const neutronMaterial = new THREE.MeshBasicMaterial({ 
             color: 0x6699ff,
-            metalness: 0.6,
-            roughness: 0.2,
-            emissive: 0x112244
+            transparent: true,
+            opacity: 1.0
         });
 
         // Arrange nucleus particles in a more realistic cluster
@@ -188,12 +186,10 @@ export class AtomModel {
 
     createElectrons() {
         const electronGeometry = new THREE.SphereGeometry(0.025, 12, 12);
-        const electronMaterial = new THREE.MeshStandardMaterial({ 
+        const electronMaterial = new THREE.MeshBasicMaterial({ 
             color: 0x00ff66,
-            metalness: 0.8,
-            roughness: 0.1,
-            emissive: 0x003311,
-            emissiveIntensity: 0.5
+            transparent: true,
+            opacity: 1.0
         });
 
         // Electron configurations matching orbitals
@@ -318,9 +314,6 @@ export class AtomModel {
                 if (mat.userData._origOpacity === undefined) {
                     mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
                 }
-                if (mat.userData._origEmissive === undefined) {
-                    mat.userData._origEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000);
-                }
                 if (mat.userData._origColor === undefined) {
                     mat.userData._origColor = mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
                 }
@@ -328,18 +321,12 @@ export class AtomModel {
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // GLOW: Keep original color but add glow
+                    // GLOW: Keep original color, full opacity
                     mat.opacity = 1.0;
-                    if (mat.emissive) {
-                        mat.emissive.setHex(0x444444); // Add glow
-                    }
                     // Keep original color unchanged
                 } else {
                     // TRANSPARENT: Make others transparent but visible
                     mat.opacity = 0.4;
-                    if (mat.emissive) {
-                        mat.emissive.setHex(0x000000); // Remove any glow
-                    }
                     // Keep original color unchanged
                 }
             });
@@ -522,11 +509,6 @@ export class AtomModel {
                 }
                 if (mat.userData && mat.userData._origTransparent !== undefined) {
                     mat.transparent = mat.userData._origTransparent;
-                }
-                if (mat.userData && mat.userData._origEmissive) {
-                    if (mat.emissive) {
-                        mat.emissive.copy(mat.userData._origEmissive);
-                    }
                 }
                 if (mat.userData && mat.userData._origColor) {
                     if (mat.color) {
