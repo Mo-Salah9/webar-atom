@@ -435,7 +435,6 @@ class WebARAtomApp {
                     <p>توجد البروتونات داخل نواة الذرة، وتحمل الشحنة الموجبة، وتحدد نوع العنصر (العدد الذري).</p>
                 `;
                 if (this.atom && this.atom.highlightKind) this.atom.highlightKind('proton', 1);
-                if (this.atom && this.atom.fadeExcept) this.atom.fadeExcept(this.atom.nucleusGroup, 0.05);
                 break;
             case 2: // Scene 3: النيوترون
                 panel.classList.remove('hidden');
@@ -444,7 +443,6 @@ class WebARAtomApp {
                     <p>توجد داخل النواة وهي متعادلة، أي لا تحمل شحنة، وتساهم في استقرار النواة.</p>
                 `;
                 if (this.atom && this.atom.highlightKind) this.atom.highlightKind('neutron', 1);
-                if (this.atom && this.atom.fadeExcept) this.atom.fadeExcept(this.atom.nucleusGroup, 0.05);
                 break;
             case 3: // Scene 4: الإلكترون
                 panel.classList.remove('hidden');

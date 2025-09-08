@@ -280,40 +280,28 @@ export class AtomModel {
         electron.userData.trailIndex = 0;
     }
 
-    // Highlight helpers
+    // Fading-based highlight helpers
     highlightKind(kind, intensity = 1.0) {
-        const targets = [];
+        // Keep only the requested kind fully visible
         if (kind === 'proton' || kind === 'neutron') {
-            this.nucleus.forEach(p => { if (p.userData.kind === kind) targets.push(p); });
+            // Both reside in nucleus; keep only matching kind
+            const tempGroup = new THREE.Group();
+            this.nucleus.forEach(p => { if (p.userData.kind === kind) tempGroup.add(p); });
+            this.fadeExcept(tempGroup, 0.08);
         } else if (kind === 'electron') {
-            targets.push(...this.electrons);
+            const tempGroup = new THREE.Group();
+            this.electrons.forEach(e => tempGroup.add(e));
+            // Also keep trails
+            this.electrons.forEach(e => { if (e.userData && e.userData.trail) tempGroup.add(e.userData.trail); });
+            this.fadeExcept(tempGroup, 0.08);
+        } else {
+            // Default: no special keep, restore
+            this.restoreOpacity();
         }
-        targets.forEach(obj => {
-            const mat = obj.material;
-            if (mat) {
-                if (mat.userData._origEmissive === undefined) mat.userData._origEmissive = mat.emissive ? mat.emissive.clone() : null;
-                if (mat.userData._origOpacity === undefined) mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
-                if (mat.emissive) mat.emissive.setHex(0xffff55);
-                mat.transparent = true;
-                mat.opacity = Math.min(1, 0.7 + 0.3 * intensity);
-            }
-            obj.scale.setScalar(1 + 0.15 * intensity);
-        });
     }
 
     clearHighlights() {
-        this.group.traverse(obj => {
-            const mat = obj.material;
-            if (!mat) return;
-            if (mat.userData && mat.userData._origEmissive) {
-                if (mat.emissive) mat.emissive.copy(mat.userData._origEmissive);
-            }
-            if (mat.userData && mat.userData._origOpacity !== undefined) {
-                mat.opacity = mat.userData._origOpacity;
-                mat.transparent = true;
-            }
-            obj.scale.setScalar(1);
-        });
+        this.restoreOpacity();
     }
 
     animate(deltaTime) {
