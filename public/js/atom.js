@@ -328,23 +328,19 @@ export class AtomModel {
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // GLOW: Make target bright and glowing
+                    // GLOW: Keep original color but add glow
                     mat.opacity = 1.0;
                     if (mat.emissive) {
                         mat.emissive.setHex(0x444444); // Add glow
                     }
-                    if (mat.color) {
-                        mat.color.multiplyScalar(1.3); // Brighten color
-                    }
+                    // Keep original color unchanged
                 } else {
-                    // DIM: Make others dark and transparent
-                    mat.opacity = 0.3;
+                    // TRANSPARENT: Make others transparent but visible
+                    mat.opacity = 0.4;
                     if (mat.emissive) {
                         mat.emissive.setHex(0x000000); // Remove any glow
                     }
-                    if (mat.color) {
-                        mat.color.multiplyScalar(0.4); // Darken color
-                    }
+                    // Keep original color unchanged
                 }
             });
         });
