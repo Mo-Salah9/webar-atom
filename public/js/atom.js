@@ -321,8 +321,8 @@ export class AtomModel {
                 
                 // Ensure transparency enabled
                 mat.transparent = true;
-                // Keep target fully visible, fade others to 0.25 opacity
-                mat.opacity = shouldKeep ? 1.0 : 0.25;
+                // Keep target fully visible, fade others to 0.5 opacity
+                mat.opacity = shouldKeep ? 1.0 : 0.5;
             });
         });
         
