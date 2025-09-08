@@ -330,9 +330,10 @@ export class AtomModel {
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // TARGET: Completely opaque, not affected by other materials
+                    // TARGET: Completely opaque, solid material
                     mat.opacity = 1.0;
-                    mat.transparent = false; // Make it completely opaque
+                    mat.transparent = false; // Completely opaque
+                    mat.alphaTest = 0; // No alpha testing
                     if (mat.emissive) {
                         mat.emissive.setHex(0x666666); // Brighter glow for protons
                     }
@@ -340,6 +341,7 @@ export class AtomModel {
                     // OTHERS: Make others visible at 10% opacity
                     mat.opacity = 0.1; // 10% visible
                     mat.transparent = true; // Keep transparent for others
+                    mat.alphaTest = 0.1; // Alpha test for transparency
                     if (mat.emissive) {
                         mat.emissive.setHex(0x000000); // Remove glow
                     }
