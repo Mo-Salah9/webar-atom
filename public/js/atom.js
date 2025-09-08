@@ -312,12 +312,14 @@ export class AtomModel {
             const materials = Array.isArray(material) ? material : [material];
             const shouldKeep = keepSet.has(obj);
             
-            // Special case: Make nucleus container completely transparent in scenes 2 and 3
+            // Special case: Make nucleus container completely invisible in scenes 2 and 3
             if ((kind === 'proton' || kind === 'neutron') && obj === this.nucleus) {
                 materials.forEach((mat) => {
                     mat.transparent = true;
                     mat.opacity = 0.0; // Completely invisible nucleus container
+                    mat.visible = false; // Also disable visibility
                 });
+                obj.visible = false; // Hide the entire nucleus container object
                 return; // Skip the normal processing for nucleus container
             }
             
