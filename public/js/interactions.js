@@ -45,6 +45,9 @@ export class InteractionManager {
 
         this.setupControllers();
         this.setupTouchEvents();
+
+        // Simple event system for selection notifications
+        this._listeners = { selectPart: [] };
     }
 
     setupControllers() {
@@ -123,11 +126,12 @@ export class InteractionManager {
             const { x, y } = this.activePointers.get(event.pointerId);
             const intersections = this.raycastFromScreen(x, y);
             if (intersections.length > 0) {
-                // Fade all other parts except the clicked part's subtree
+                // Fade others and notify listeners
                 const clickedObject = intersections[0].object;
                 if (this.atom.fadeExcept) {
                     this.atom.fadeExcept(clickedObject, 0.1);
                 }
+                this._emit('selectPart', this._resolvePart(clickedObject));
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
                 this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
@@ -260,6 +264,9 @@ export class InteractionManager {
             
             controller.userData.isSelecting = true;
             console.log('Atom grabbed via WebXR');
+
+            // Emit selected part for UI
+            this._emit('selectPart', this._resolvePart(intersections[0].object));
         }
     }
 
@@ -354,6 +361,31 @@ export class InteractionManager {
         raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
         return raycaster.intersectObject(this.atom.getGroup(), true);
+    }
+
+    // Basic event handling
+    on(eventName, callback) {
+        if (!this._listeners[eventName]) this._listeners[eventName] = [];
+        this._listeners[eventName].push(callback);
+        return () => {
+            this._listeners[eventName] = this._listeners[eventName].filter(fn => fn !== callback);
+        };
+    }
+
+    _emit(eventName, payload) {
+        const list = this._listeners[eventName] || [];
+        list.forEach(fn => {
+            try { fn(payload); } catch (e) { /* noop */ }
+        });
+    }
+
+    _resolvePart(object) {
+        let current = object;
+        while (current) {
+            if (current.userData && current.userData.part) return current.userData.part;
+            current = current.parent;
+        }
+        return 'atom';
     }
 
     scaleAtom(factor) {

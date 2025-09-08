@@ -120,6 +120,31 @@
             display: none !important;
         }
 
+        .edu-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            color: #222;
+            padding: 16px 18px;
+            border-radius: 12px;
+            pointer-events: all;
+            max-width: 480px;
+            margin-left: auto;
+            direction: rtl;
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .edu-panel h3 {
+            margin: 0 0 10px 0;
+            color: #764ba2;
+            font-size: 18px;
+        }
+
+        .edu-panel p { margin: 6px 0; }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -146,6 +171,14 @@
                 <li>🔄 Rotate with two-finger twist</li>
                 <li>👆 Single tap to move atom</li>
             </ul>
+        </div>
+
+        <div class="edu-panel" id="eduPanel">
+            <h3>معلومات تعليمية</h3>
+            <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+            <p>لنتعرف عليها!</p>
+            <p><strong>عند الضغط على النواة:</strong> هنا تقع البروتونات والنيوترونات.</p>
+            <p><strong>عند الضغط على الإلكترونات:</strong> الإلكترونات تدور حول النواة.</p>
         </div>
         
         <div class="controls hidden" id="controls">

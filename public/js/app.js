@@ -41,6 +41,7 @@ class WebARAtomApp {
             this.setupARButton();
             this.setupInteractions();
             this.setupEventListeners();
+            this.setupEducationUI();
             
             this.animate();
             
@@ -178,6 +179,11 @@ class WebARAtomApp {
         const controllers = this.renderer.xr.getController(0);
         controllers.addEventListener('select', () => this.onSelect());
         this.scene.add(controllers);
+
+        // Listen for part selection to update UI text
+        this.interactionManager.on('selectPart', (part) => {
+            this.updateEducationText(part);
+        });
     }
 
     setupEventListeners() {
@@ -332,6 +338,39 @@ class WebARAtomApp {
         const instructions = document.getElementById('instructions');
         if (instructions) {
             instructions.classList.add('hidden');
+        }
+    }
+
+    setupEducationUI() {
+        const panel = document.getElementById('eduPanel');
+        if (panel) {
+            panel.classList.remove('hidden');
+        }
+    }
+
+    updateEducationText(part) {
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
+        if (part === 'nucleus') {
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p><strong>النواة:</strong> هنا تقع البروتونات والنيوترونات في مركز الذرّة.</p>
+                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
+            `;
+        } else if (part === 'electron') {
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p><strong>الإلكترونات:</strong> جسيمات سالبة الشحنة تدور حول النواة في مدارات.</p>
+                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة.</p>
+            `;
+        } else {
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                <p>لنتعرف عليها!</p>
+                <p><strong>عند الضغط على النواة:</strong> هنا تقع البروتونات والنيوترونات.</p>
+                <p><strong>عند الضغط على الإلكترونات:</strong> الإلكترونات تدور حول النواة.</p>
+            `;
         }
     }
 

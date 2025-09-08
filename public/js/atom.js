@@ -87,10 +87,14 @@ export class AtomModel {
             particle.userData.originalPosition = particle.position.clone();
             particle.userData.vibrationPhase = Math.random() * Math.PI * 2;
             
+            // Tag as nucleus part
+            particle.userData.part = 'nucleus';
             nucleusGroup.add(particle);
             this.nucleus.push(particle);
         }
 
+        // Tag the whole nucleus group
+        nucleusGroup.userData.part = 'nucleus';
         this.group.add(nucleusGroup);
         this.nucleusGroup = nucleusGroup;
     }
@@ -166,6 +170,7 @@ export class AtomModel {
             });
             
             const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
+            orbit.userData.part = 'orbit';
             
             // Apply orbital inclination
             orbit.rotation.x = config.inclination;
@@ -244,6 +249,8 @@ export class AtomModel {
                 trailPoints: []
             };
             
+            // Tag as electron part
+            electron.userData.part = 'electron';
             this.group.add(electron);
             this.electrons.push(electron);
 
