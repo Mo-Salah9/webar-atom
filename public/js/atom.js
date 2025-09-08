@@ -333,11 +333,11 @@ export class AtomModel {
                     // GLOW: Keep original color, full opacity, add glow
                     mat.opacity = 1.0;
                     if (mat.emissive) {
-                        mat.emissive.setHex(0x333333); // Add subtle glow
+                        mat.emissive.setHex(0x666666); // Brighter glow for protons
                     }
                 } else {
                     // TRANSPARENT: Make others transparent but visible
-                    mat.opacity = 0.4;
+                    mat.opacity = 0.0; // Fully transparent for electrons
                     if (mat.emissive) {
                         mat.emissive.setHex(0x000000); // Remove glow
                     }
@@ -381,6 +381,40 @@ export class AtomModel {
         // Restore original scale
         this.nucleus.forEach(particle => {
             if (particle.userData.kind === 'proton' && particle.userData.originalScale) {
+                particle.scale.copy(particle.userData.originalScale);
+            }
+        });
+    }
+
+    // Special animation for neutrons in Scene 3
+    animateNeutrons(enableAnimation = true) {
+        this.neutronsAnimating = enableAnimation;
+        this.neutronAnimationTime = 0;
+        
+        // Make neutrons bigger and bright blue like in the image
+        this.nucleus.forEach(particle => {
+            if (particle.userData.kind === 'neutron') {
+                // Store original scale
+                if (!particle.userData.originalScale) {
+                    particle.userData.originalScale = particle.scale.clone();
+                }
+                // Make bigger
+                particle.scale.setScalar(1.5);
+                
+                // Make bright blue color like in the image
+                if (particle.material) {
+                    particle.material.color.setHex(0x6699ff); // Bright blue
+                }
+            }
+        });
+    }
+
+    stopNeutronAnimation() {
+        this.neutronsAnimating = false;
+        
+        // Restore original scale
+        this.nucleus.forEach(particle => {
+            if (particle.userData.kind === 'neutron' && particle.userData.originalScale) {
                 particle.scale.copy(particle.userData.originalScale);
             }
         });

@@ -466,6 +466,7 @@ class WebARAtomApp {
         if (this.atom && this.atom.clearHighlights) this.atom.clearHighlights();
         if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
         if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
+        if (this.atom && this.atom.stopNeutronAnimation) this.atom.stopNeutronAnimation();
 
         switch (clamped) {
             case 0: // Scene 1: ظهور الذرة
@@ -494,7 +495,10 @@ class WebARAtomApp {
                     <h3>النيوترونات</h3>
                     <p>توجد داخل النواة وهي متعادلة، أي لا تحمل شحنة، وتساهم في استقرار النواة.</p>
                 `;
-                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('neutron', 1);
+                if (this.atom && this.atom.highlightKind) {
+                    this.atom.highlightKind('neutron', 1);
+                    this.atom.animateNeutrons(false); // Disable animation
+                }
                 break;
             case 3: // Scene 4: الإلكترون
                 panel.classList.remove('hidden');
