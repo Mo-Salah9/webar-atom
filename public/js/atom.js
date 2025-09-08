@@ -341,21 +341,23 @@ export class AtomModel {
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // TARGET: Completely opaque, solid material with colored glow
+                    // TARGET: Completely solid, no transparency at all
                     mat.opacity = 1.0;
                     mat.transparent = false; // Completely opaque
                     mat.alphaTest = 0; // No alpha testing
+                    mat.depthWrite = true; // Enable depth writing
+                    mat.depthTest = true; // Enable depth testing
                     
-                    // Make the base color brighter and set matching emissive
+                    // Make the base color bright and solid
                     if (kind === 'proton') {
                         mat.color.setHex(0xff0000); // Bright pure red
                         if (mat.emissive) {
-                            mat.emissive.setHex(0xff3333); // Red glow, not white
+                            mat.emissive.setHex(0x000000); // No emissive glow, just solid color
                         }
                     } else if (kind === 'neutron') {
                         mat.color.setHex(0x0066ff); // Bright pure blue
                         if (mat.emissive) {
-                            mat.emissive.setHex(0x3366ff); // Blue glow, not white
+                            mat.emissive.setHex(0x000000); // No emissive glow, just solid color
                         }
                     }
                 } else {
@@ -620,6 +622,18 @@ export class AtomModel {
             const material = obj.material;
             if (!material) return;
             const materials = Array.isArray(material) ? material : [material];
+            
+            // Keep nucleus container invisible in scenes 2 and 3
+            if (obj === this.nucleus) {
+                materials.forEach((mat) => {
+                    mat.transparent = true;
+                    mat.opacity = 0.0;
+                    mat.visible = false;
+                });
+                obj.visible = false;
+                return;
+            }
+            
             materials.forEach((mat) => {
                 if (mat.userData && mat.userData._origOpacity !== undefined) {
                     mat.opacity = mat.userData._origOpacity;
