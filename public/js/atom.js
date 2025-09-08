@@ -29,16 +29,20 @@ export class AtomModel {
         
         // Create protons (bright red)
         const protonGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-        const protonMaterial = new THREE.MeshBasicMaterial({ 
+        const protonMaterial = new THREE.MeshStandardMaterial({ 
             color: 0xff3333,
+            metalness: 0.0,
+            roughness: 0.3,
             transparent: true,
             opacity: 1.0
         });
 
         // Create neutrons (blue-white)
         const neutronGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-        const neutronMaterial = new THREE.MeshBasicMaterial({ 
+        const neutronMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x6699ff,
+            metalness: 0.0,
+            roughness: 0.3,
             transparent: true,
             opacity: 1.0
         });
@@ -186,8 +190,10 @@ export class AtomModel {
 
     createElectrons() {
         const electronGeometry = new THREE.SphereGeometry(0.025, 12, 12);
-        const electronMaterial = new THREE.MeshBasicMaterial({ 
+        const electronMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x00ff66,
+            metalness: 0.0,
+            roughness: 0.2,
             transparent: true,
             opacity: 1.0
         });
@@ -317,17 +323,24 @@ export class AtomModel {
                 if (mat.userData._origColor === undefined) {
                     mat.userData._origColor = mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
                 }
+                if (mat.userData._origEmissive === undefined) {
+                    mat.userData._origEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000);
+                }
                 
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // GLOW: Keep original color, full opacity
+                    // GLOW: Keep original color, full opacity, add glow
                     mat.opacity = 1.0;
-                    // Keep original color unchanged
+                    if (mat.emissive) {
+                        mat.emissive.setHex(0x333333); // Add subtle glow
+                    }
                 } else {
                     // TRANSPARENT: Make others transparent but visible
                     mat.opacity = 0.4;
-                    // Keep original color unchanged
+                    if (mat.emissive) {
+                        mat.emissive.setHex(0x000000); // Remove glow
+                    }
                 }
             });
         });
@@ -513,6 +526,11 @@ export class AtomModel {
                 if (mat.userData && mat.userData._origColor) {
                     if (mat.color) {
                         mat.color.copy(mat.userData._origColor);
+                    }
+                }
+                if (mat.userData && mat.userData._origEmissive) {
+                    if (mat.emissive) {
+                        mat.emissive.copy(mat.userData._origEmissive);
                     }
                 }
             });
