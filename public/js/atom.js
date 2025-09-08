@@ -348,16 +348,16 @@ export class AtomModel {
                     mat.depthWrite = true; // Enable depth writing
                     mat.depthTest = true; // Enable depth testing
                     
-                    // Make the base color bright and solid with strong emissive
+                    // Make the base color bright and solid
                     if (kind === 'proton') {
                         mat.color.setHex(0xff0000); // Bright pure red
                         if (mat.emissive) {
-                            mat.emissive.setHex(0xff6666); // Strong red emissive glow
+                            mat.emissive.setHex(0x000000); // No emissive glow, just solid color
                         }
                     } else if (kind === 'neutron') {
                         mat.color.setHex(0x0066ff); // Bright pure blue
                         if (mat.emissive) {
-                            mat.emissive.setHex(0x6699ff); // Strong blue emissive glow
+                            mat.emissive.setHex(0x000000); // No emissive glow, just solid color
                         }
                     }
                 } else {
