@@ -370,7 +370,7 @@ class WebARAtomApp {
                 <h3>معلومات تعليمية</h3>
                 <p>هنا تقع البروتونات والنيوترونات</p>
             `;
-        } else if (part === 'electron') {
+        } else if (part === 'electron' || part === 'orbit') {
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>
                 <p>الإلكترونات تدور حول النواة.</p>

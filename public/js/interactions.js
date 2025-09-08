@@ -216,7 +216,8 @@ export class InteractionManager {
     }
 
     raycastFromScreen(x, y) {
-        const rect = this.renderer.domElement.getBoundingClientRect();
+        const targetEl = this._touchTarget || this.renderer.domElement;
+        const rect = targetEl.getBoundingClientRect();
         this.ndc.x = ((x - rect.left) / rect.width) * 2 - 1;
         this.ndc.y = -((y - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.ndc, this.camera);
