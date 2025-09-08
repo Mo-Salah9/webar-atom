@@ -352,8 +352,54 @@ export class AtomModel {
         this.restoreOpacity();
     }
 
+    // Special animation for protons in Scene 2
+    animateProtons() {
+        this.protonsAnimating = true;
+        this.protonAnimationTime = 0;
+        
+        // Make protons bigger and more natural colored
+        this.nucleus.forEach(particle => {
+            if (particle.userData.kind === 'proton') {
+                // Store original scale
+                if (!particle.userData.originalScale) {
+                    particle.userData.originalScale = particle.scale.clone();
+                }
+                // Make bigger
+                particle.scale.setScalar(1.5);
+                
+                // Make more natural red color
+                if (particle.material) {
+                    particle.material.color.setHex(0xff4444); // More natural red
+                }
+            }
+        });
+    }
+
+    stopProtonAnimation() {
+        this.protonsAnimating = false;
+        
+        // Restore original scale
+        this.nucleus.forEach(particle => {
+            if (particle.userData.kind === 'proton' && particle.userData.originalScale) {
+                particle.scale.copy(particle.userData.originalScale);
+            }
+        });
+    }
+
     animate(deltaTime) {
         this.time += deltaTime;
+        
+        // Proton scale animation for Scene 2
+        if (this.protonsAnimating) {
+            this.protonAnimationTime += deltaTime;
+            const pulseScale = 1.5 + Math.sin(this.protonAnimationTime * 3) * 0.1; // Gentle pulsing
+            
+            this.nucleus.forEach(particle => {
+                if (particle.userData.kind === 'proton') {
+                    particle.scale.setScalar(pulseScale);
+                }
+            });
+        }
         
         // Animate nucleus particles with subtle vibration
         this.nucleus.forEach((particle, index) => {

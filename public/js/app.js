@@ -456,9 +456,10 @@ class WebARAtomApp {
         if (challenge) challenge.classList.add('hidden');
         if (!panel) return;
 
-        // Reset any highlights
+        // Reset any highlights and animations
         if (this.atom && this.atom.clearHighlights) this.atom.clearHighlights();
         if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
+        if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
 
         switch (clamped) {
             case 0: // Scene 1: ظهور الذرة
@@ -476,7 +477,10 @@ class WebARAtomApp {
                     <h3>البروتونات</h3>
                     <p>توجد البروتونات داخل نواة الذرة، وتحمل الشحنة الموجبة، وتحدد نوع العنصر (العدد الذري).</p>
                 `;
-                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('proton', 1);
+                if (this.atom && this.atom.highlightKind) {
+                    this.atom.highlightKind('proton', 1);
+                    this.atom.animateProtons();
+                }
                 break;
             case 2: // Scene 3: النيوترون
                 panel.classList.remove('hidden');
