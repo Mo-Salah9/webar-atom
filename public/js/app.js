@@ -23,6 +23,7 @@ class WebARAtomApp {
         // State
         this.isARActive = false;
         this.atomPlaced = false;
+        this.educationalMode = true;
         
         // Performance
         this.clock = new THREE.Clock();
@@ -41,13 +42,70 @@ class WebARAtomApp {
             this.setupARButton();
             this.setupInteractions();
             this.setupEventListeners();
+            this.setupEducationalUI();
             
             this.animate();
             
-            console.log('âœ… WebAR Atom App initialized successfully');
+            console.log('✅ WebAR Atom App initialized successfully');
         } catch (error) {
-            console.error('âŒ Failed to initialize WebAR Atom App:', error);
+            console.error('❌ Failed to initialize WebAR Atom App:', error);
             this.showError('Failed to initialize AR. Please check browser compatibility.');
+        }
+    }
+
+    setupEducationalUI() {
+        // Setup control buttons for scaling
+        const scaleUpBtn = document.getElementById('scaleUp');
+        const scaleDownBtn = document.getElementById('scaleDown');
+        const resetBtn = document.getElementById('reset');
+
+        if (scaleUpBtn) {
+            scaleUpBtn.addEventListener('click', () => {
+                if (this.interactionManager) {
+                    this.interactionManager.scaleAtom(1.2);
+                }
+            });
+        }
+
+        if (scaleDownBtn) {
+            scaleDownBtn.addEventListener('click', () => {
+                if (this.interactionManager) {
+                    this.interactionManager.scaleAtom(0.8);
+                }
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (this.interactionManager) {
+                    this.interactionManager.resetAtom();
+                }
+                if (this.atom) {
+                    this.atom.restoreOpacity();
+                }
+            });
+        }
+
+        // Show initial educational message
+        this.showInitialEducationalMessage();
+    }
+
+    showInitialEducationalMessage() {
+        const initialMessage = document.getElementById('initialMessage');
+        if (initialMessage) {
+            initialMessage.classList.remove('hidden');
+        }
+    }
+
+    hideInitialEducationalMessage() {
+        const initialMessage = document.getElementById('initialMessage');
+        if (initialMessage) {
+            initialMessage.classList.add('hidden');
+        }
+        
+        const clickInstruction = document.getElementById('clickInstruction');
+        if (clickInstruction) {
+            clickInstruction.classList.remove('hidden');
         }
     }
 
@@ -141,23 +199,36 @@ class WebARAtomApp {
         // Style the button
         arButton.id = 'arButton';
         arButton.className = 'ar-button';
-        arButton.textContent = 'Start AR Experience';
+        arButton.textContent = 'ابدأ تجربة الواقع المعزز';
         
         // Add to overlay
         document.querySelector('.ui-overlay').appendChild(arButton);
 
         // AR session events
         this.renderer.xr.addEventListener('sessionstart', () => {
-            console.log('ðŸš€ AR session started');
+            console.log('🚀 AR session started');
             this.isARActive = true;
             this.hideInstructions();
+            this.hideInitialEducationalMessage();
+            
+            // Enable educational mode in interaction manager
+            if (this.interactionManager) {
+                this.interactionManager.setEducationalMode(true);
+            }
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
-            console.log('ðŸ›‘ AR session ended');
+            console.log('📱 AR session ended');
             this.isARActive = false;
             this.atomPlaced = false;
             this.showInstructions();
+            this.showInitialEducationalMessage();
+            
+            // Hide click instruction
+            const clickInstruction = document.getElementById('clickInstruction');
+            if (clickInstruction) {
+                clickInstruction.classList.add('hidden');
+            }
             
             if (this.atom) {
                 this.scene.remove(this.atom.getGroup());
@@ -174,6 +245,9 @@ class WebARAtomApp {
             this.camera
         );
 
+        // Enable educational mode by default
+        this.interactionManager.setEducationalMode(this.educationalMode);
+
         // Setup controller select events for atom placement
         const controllers = this.renderer.xr.getController(0);
         controllers.addEventListener('select', () => this.onSelect());
@@ -183,6 +257,36 @@ class WebARAtomApp {
     setupEventListeners() {
         // Window resize
         window.addEventListener('resize', () => this.onWindowResize(), false);
+
+        // Make global functions available for educational UI
+        window.closeInitialMessage = () => {
+            this.hideInitialEducationalMessage();
+        };
+
+        window.closeEducationalMessage = () => {
+            const nucleusMessage = document.getElementById('nucleusMessage');
+            const electronMessage = document.getElementById('electronMessage');
+            if (nucleusMessage) nucleusMessage.classList.add('hidden');
+            if (electronMessage) electronMessage.classList.add('hidden');
+        };
+
+        window.showNucleusMessage = () => {
+            window.closeEducationalMessage();
+            const msg = document.getElementById('nucleusMessage');
+            if (msg) {
+                msg.classList.remove('hidden');
+                msg.classList.add('fade-in');
+            }
+        };
+
+        window.showElectronMessage = () => {
+            window.closeEducationalMessage();
+            const msg = document.getElementById('electronMessage');
+            if (msg) {
+                msg.classList.remove('hidden');
+                msg.classList.add('fade-in');
+            }
+        };
     }
 
     onSelect() {
@@ -192,7 +296,7 @@ class WebARAtomApp {
     }
 
     placeAtom() {
-        console.log('ðŸŽ¯ Placing atom');
+        console.log('🎯 Placing atom');
         
         // Create atom model
         this.atom = new AtomModel();
@@ -215,7 +319,13 @@ class WebARAtomApp {
         this.hitTestSource = null;
         this.hitTestSourceRequested = false;
         
-        console.log('âœ… Atom placed successfully');
+        // Show controls
+        const controls = document.getElementById('controls');
+        if (controls) {
+            controls.classList.remove('hidden');
+        }
+        
+        console.log('✅ Atom placed successfully');
     }
 
     onWindowResize() {
@@ -318,7 +428,7 @@ class WebARAtomApp {
 
     updatePerformanceStats() {
         const info = this.renderer.info;
-        console.log(`ðŸ“Š Performance - Triangles: ${info.render.triangles}, Calls: ${info.render.calls}, FPS: ~${Math.round(1000/this.clock.getDelta())}`);
+        console.log(`📊 Performance - Triangles: ${info.render.triangles}, Calls: ${info.render.calls}, FPS: ~${Math.round(1000/this.clock.getDelta())}`);
     }
 
     showInstructions() {
@@ -351,7 +461,7 @@ class WebARAtomApp {
             max-width: 300px;
         `;
         errorDiv.innerHTML = `
-            <h3>âš ï¸ Error</h3>
+            <h3>⚠️ Error</h3>
             <p>${message}</p>
             <button onclick="this.parentElement.remove()" 
                     style="background: white; color: red; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">
@@ -374,30 +484,36 @@ class WebARAtomApp {
         // Remove event listeners
         window.removeEventListener('resize', this.onWindowResize);
         
-        console.log('ðŸ§¹ WebAR Atom App disposed');
+        console.log('🧹 WebAR Atom App disposed');
     }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('ðŸš€ Starting WebAR Atom App...');
+    console.log('🚀 Starting WebAR Atom App...');
     
     // Check WebXR support
     if (navigator.xr) {
         navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
             if (supported) {
-                console.log('âœ… WebXR AR supported');
-                new WebARAtomApp();
+                console.log('✅ WebXR AR supported');
+                window.webARApp = new WebARAtomApp();
             } else {
-                console.warn('âš ï¸ WebXR AR not supported');
-                document.getElementById('arButton').textContent = 'AR Not Supported';
-                document.getElementById('arButton').disabled = true;
+                console.warn('⚠️ WebXR AR not supported');
+                const arButton = document.getElementById('arButton');
+                if (arButton) {
+                    arButton.textContent = 'الواقع المعزز غير مدعوم';
+                    arButton.disabled = true;
+                }
             }
         });
     } else {
-        console.warn('âš ï¸ WebXR not available');
-        document.getElementById('arButton').textContent = 'WebXR Not Available';
-        document.getElementById('arButton').disabled = true;
+        console.warn('⚠️ WebXR not available');
+        const arButton = document.getElementById('arButton');
+        if (arButton) {
+            arButton.textContent = 'الواقع المعزز غير متوفر';
+            arButton.disabled = true;
+        }
     }
 });
 
