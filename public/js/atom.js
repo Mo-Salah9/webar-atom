@@ -353,11 +353,11 @@ export class AtomModel {
     }
 
     // Special animation for protons in Scene 2
-    animateProtons() {
-        this.protonsAnimating = true;
+    animateProtons(enableAnimation = true) {
+        this.protonsAnimating = enableAnimation;
         this.protonAnimationTime = 0;
         
-        // Make protons bigger and more natural colored
+        // Make protons bigger and bright red like in the image
         this.nucleus.forEach(particle => {
             if (particle.userData.kind === 'proton') {
                 // Store original scale
@@ -367,9 +367,9 @@ export class AtomModel {
                 // Make bigger
                 particle.scale.setScalar(1.5);
                 
-                // Make more natural red color
+                // Make bright red color like in the image
                 if (particle.material) {
-                    particle.material.color.setHex(0xff4444); // More natural red
+                    particle.material.color.setHex(0xff0000); // Bright pure red
                 }
             }
         });

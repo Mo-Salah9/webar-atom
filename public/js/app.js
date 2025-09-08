@@ -381,6 +381,7 @@ class WebARAtomApp {
         if (this.sceneIndex === 0) {
             this.showPartInfo(part);
         }
+        // In other scenes, ignore part selection to prevent unwanted transparency
     }
 
     showPartInfo(part) {
@@ -451,6 +452,11 @@ class WebARAtomApp {
         const clamped = Math.max(0, Math.min(5, index));
         this.sceneIndex = clamped;
         this.updateSceneIndicator();
+        
+        // Tell interaction manager about current scene
+        if (this.interactionManager && this.interactionManager.setCurrentScene) {
+            this.interactionManager.setCurrentScene(clamped);
+        }
         const panel = document.getElementById('eduPanel');
         const challenge = document.getElementById('challengeOverlay');
         if (challenge) challenge.classList.add('hidden');
@@ -479,7 +485,7 @@ class WebARAtomApp {
                 `;
                 if (this.atom && this.atom.highlightKind) {
                     this.atom.highlightKind('proton', 1);
-                    this.atom.animateProtons();
+                    this.atom.animateProtons(false); // Disable animation
                 }
                 break;
             case 2: // Scene 3: النيوترون

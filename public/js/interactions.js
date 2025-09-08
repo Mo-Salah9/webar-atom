@@ -132,9 +132,9 @@ export class InteractionManager {
             const { x, y } = this.activePointers.get(event.pointerId);
             const intersections = this.raycastFromScreen(x, y);
             if (intersections.length > 0) {
-                // Fade others and notify listeners
+                // Fade others and notify listeners (only in Scene 1)
                 const clickedObject = intersections[0].object;
-                if (this.atom.fadeExcept) {
+                if (this.atom.fadeExcept && this._shouldAllowInteraction()) {
                     this.atom.fadeExcept(clickedObject, 0.1);
                 }
                 this._emit('selectPart', this._resolvePart(clickedObject));
@@ -143,8 +143,8 @@ export class InteractionManager {
                 this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
                 this.isTouchGrabbing = false; // disable move
             } else {
-                // Tap empty space restores opacity
-                if (this.atom.restoreOpacity) {
+                // Tap empty space restores opacity (only in Scene 1)
+                if (this.atom.restoreOpacity && this._shouldAllowInteraction()) {
                     this.atom.restoreOpacity();
                 }
             }
@@ -217,12 +217,14 @@ export class InteractionManager {
                 const intersections = this.raycastFromScreen(upPos.x, upPos.y);
                 if (intersections.length > 0) {
                     const clickedObject = intersections[0].object;
-                    if (this.atom.fadeExcept) {
+                    // Only apply fading in Scene 1 (interactive exploration)
+                    if (this.atom.fadeExcept && this._shouldAllowInteraction()) {
                         this.atom.fadeExcept(clickedObject, 0.1);
                     }
                     this._emit('selectPart', this._resolvePart(clickedObject));
                 } else {
-                    if (this.atom.restoreOpacity) {
+                    // Only restore opacity in Scene 1
+                    if (this.atom.restoreOpacity && this._shouldAllowInteraction()) {
                         this.atom.restoreOpacity();
                     }
                 }
@@ -417,6 +419,16 @@ export class InteractionManager {
             current = current.parent;
         }
         return 'atom';
+    }
+
+    _shouldAllowInteraction() {
+        // Only allow interactive fading in Scene 1 (index 0)
+        // In other scenes, the app controls the highlighting
+        return this._currentSceneIndex === 0;
+    }
+
+    setCurrentScene(sceneIndex) {
+        this._currentSceneIndex = sceneIndex;
     }
 
     scaleAtom(factor) {
