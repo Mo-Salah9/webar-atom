@@ -282,22 +282,51 @@ export class AtomModel {
 
     // Fading-based highlight helpers
     highlightKind(kind, intensity = 1.0) {
-        // Keep only the requested kind fully visible
+        // Build keep set for the target kind
+        const keepSet = new Set();
+        
         if (kind === 'proton' || kind === 'neutron') {
-            // Both reside in nucleus; keep only matching kind
-            const tempGroup = new THREE.Group();
-            this.nucleus.forEach(p => { if (p.userData.kind === kind) tempGroup.add(p); });
-            this.fadeExcept(tempGroup, 0.08);
+            // Keep only matching particles
+            this.nucleus.forEach(p => { 
+                if (p.userData.kind === kind) {
+                    keepSet.add(p);
+                }
+            });
         } else if (kind === 'electron') {
-            const tempGroup = new THREE.Group();
-            this.electrons.forEach(e => tempGroup.add(e));
-            // Also keep trails
-            this.electrons.forEach(e => { if (e.userData && e.userData.trail) tempGroup.add(e.userData.trail); });
-            this.fadeExcept(tempGroup, 0.08);
-        } else {
-            // Default: no special keep, restore
-            this.restoreOpacity();
+            // Keep electrons and their trails
+            this.electrons.forEach(e => {
+                keepSet.add(e);
+                if (e.userData && e.userData.trail) {
+                    keepSet.add(e.userData.trail);
+                }
+            });
         }
+        
+        // Apply fading: keep target at full opacity, fade everything else
+        this._selectionKeepSet = keepSet;
+        this.group.traverse((obj) => {
+            const material = obj.material;
+            if (!material) return;
+            const materials = Array.isArray(material) ? material : [material];
+            const shouldKeep = keepSet.has(obj);
+            
+            materials.forEach((mat) => {
+                // Store originals once
+                if (mat.userData._origTransparent === undefined) {
+                    mat.userData._origTransparent = mat.transparent === true;
+                }
+                if (mat.userData._origOpacity === undefined) {
+                    mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
+                }
+                
+                // Ensure transparency enabled
+                mat.transparent = true;
+                // Keep target fully visible, fade others to 0.25 opacity
+                mat.opacity = shouldKeep ? 1.0 : 0.25;
+            });
+        });
+        
+        this._isFaded = true;
     }
 
     clearHighlights() {
