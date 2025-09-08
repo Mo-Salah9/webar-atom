@@ -43,6 +43,11 @@ export class InteractionManager {
         this.initialTouchX = 0;
         this.rotationSensitivity = 0.01; // radians per pixel
 
+        // Tap detection
+        this._pointerDownInfo = new Map(); // pointerId -> {x,y,time, moved}
+        this._tapTimeMs = 300;
+        this._tapMovePx = 10;
+
         this.setupControllers();
         this.setupTouchEvents();
 
@@ -120,6 +125,7 @@ export class InteractionManager {
         // Record pointer
         event.preventDefault();
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        this._pointerDownInfo.set(event.pointerId, { x: event.clientX, y: event.clientY, time: performance.now(), moved: false });
 
         if (this.activePointers.size === 1) {
             // Begin rotation if touching the atom
@@ -160,6 +166,12 @@ export class InteractionManager {
 
         // Update pointer position
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        const info = this._pointerDownInfo.get(event.pointerId);
+        if (info) {
+            const dx = event.clientX - info.x;
+            const dy = event.clientY - info.y;
+            if (Math.hypot(dx, dy) > this._tapMovePx) info.moved = true;
+        }
 
         if (this.activePointers.size === 1 && this.isTouchRotating) {
             event.preventDefault();
@@ -196,7 +208,25 @@ export class InteractionManager {
     onPointerUp(event) {
         if (this.activePointers.has(event.pointerId)) {
             event.preventDefault();
+            const upPos = this.activePointers.get(event.pointerId);
             this.activePointers.delete(event.pointerId);
+            const downInfo = this._pointerDownInfo.get(event.pointerId);
+            this._pointerDownInfo.delete(event.pointerId);
+            // Detect tap (quick, minimal movement) when it was a single pointer
+            if (downInfo && !downInfo.moved && (performance.now() - downInfo.time) <= this._tapTimeMs) {
+                const intersections = this.raycastFromScreen(upPos.x, upPos.y);
+                if (intersections.length > 0) {
+                    const clickedObject = intersections[0].object;
+                    if (this.atom.fadeExcept) {
+                        this.atom.fadeExcept(clickedObject, 0.1);
+                    }
+                    this._emit('selectPart', this._resolvePart(clickedObject));
+                } else {
+                    if (this.atom.restoreOpacity) {
+                        this.atom.restoreOpacity();
+                    }
+                }
+            }
         }
 
         if (this.activePointers.size < 2) {
