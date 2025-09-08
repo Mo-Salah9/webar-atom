@@ -216,6 +216,16 @@ class WebARAtomApp {
         // Hide reticle and update state
         this.reticle.visible = false;
         this.atomPlaced = true;
+        // Show intro panel now that the atom exists
+        const panel = document.getElementById('eduPanel');
+        if (panel) {
+            panel.classList.remove('hidden');
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                <p>لنتعرف عليها!</p>
+            `;
+        }
         
         // Stop hit testing
         this.hitTestSource = null;
@@ -343,9 +353,13 @@ class WebARAtomApp {
 
     setupEducationUI() {
         const panel = document.getElementById('eduPanel');
-        if (panel) {
-            panel.classList.remove('hidden');
-        }
+        if (!panel) return;
+        panel.classList.add('hidden');
+        panel.innerHTML = `
+            <h3>معلومات تعليمية</h3>
+            <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+            <p>لنتعرف عليها!</p>
+        `;
     }
 
     updateEducationText(part) {
@@ -354,22 +368,18 @@ class WebARAtomApp {
         if (part === 'nucleus') {
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>
-                <p><strong>النواة:</strong> هنا تقع البروتونات والنيوترونات في مركز الذرّة.</p>
-                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
+                <p>هنا تقع البروتونات والنيوترونات</p>
             `;
         } else if (part === 'electron') {
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>
-                <p><strong>الإلكترونات:</strong> جسيمات سالبة الشحنة تدور حول النواة في مدارات.</p>
-                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة.</p>
+                <p>الإلكترونات تدور حول النواة.</p>
             `;
         } else {
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>
                 <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
                 <p>لنتعرف عليها!</p>
-                <p><strong>عند الضغط على النواة:</strong> هنا تقع البروتونات والنيوترونات.</p>
-                <p><strong>عند الضغط على الإلكترونات:</strong> الإلكترونات تدور حول النواة.</p>
             `;
         }
     }
