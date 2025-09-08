@@ -86,6 +86,7 @@ export class AtomModel {
             
             particle.userData.originalPosition = particle.position.clone();
             particle.userData.vibrationPhase = Math.random() * Math.PI * 2;
+            particle.userData.kind = isProton ? 'proton' : 'neutron';
             
             // Tag as nucleus part
             particle.userData.part = 'nucleus';
@@ -277,6 +278,42 @@ export class AtomModel {
         electron.userData.trail = trail;
         electron.userData.trailPositions = trailPositions;
         electron.userData.trailIndex = 0;
+    }
+
+    // Highlight helpers
+    highlightKind(kind, intensity = 1.0) {
+        const targets = [];
+        if (kind === 'proton' || kind === 'neutron') {
+            this.nucleus.forEach(p => { if (p.userData.kind === kind) targets.push(p); });
+        } else if (kind === 'electron') {
+            targets.push(...this.electrons);
+        }
+        targets.forEach(obj => {
+            const mat = obj.material;
+            if (mat) {
+                if (mat.userData._origEmissive === undefined) mat.userData._origEmissive = mat.emissive ? mat.emissive.clone() : null;
+                if (mat.userData._origOpacity === undefined) mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
+                if (mat.emissive) mat.emissive.setHex(0xffff55);
+                mat.transparent = true;
+                mat.opacity = Math.min(1, 0.7 + 0.3 * intensity);
+            }
+            obj.scale.setScalar(1 + 0.15 * intensity);
+        });
+    }
+
+    clearHighlights() {
+        this.group.traverse(obj => {
+            const mat = obj.material;
+            if (!mat) return;
+            if (mat.userData && mat.userData._origEmissive) {
+                if (mat.emissive) mat.emissive.copy(mat.userData._origEmissive);
+            }
+            if (mat.userData && mat.userData._origOpacity !== undefined) {
+                mat.opacity = mat.userData._origOpacity;
+                mat.transparent = true;
+            }
+            obj.scale.setScalar(1);
+        });
     }
 
     animate(deltaTime) {

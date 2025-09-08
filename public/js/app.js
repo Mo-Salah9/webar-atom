@@ -19,6 +19,7 @@ class WebARAtomApp {
         // App components
         this.atom = null;
         this.interactionManager = null;
+        this.sceneIndex = 0; // 0..5 (6 scenes)
         
         // State
         this.isARActive = false;
@@ -42,6 +43,7 @@ class WebARAtomApp {
             this.setupInteractions();
             this.setupEventListeners();
             this.setupEducationUI();
+            this.setupSceneControls();
             
             this.animate();
             
@@ -191,6 +193,13 @@ class WebARAtomApp {
         window.addEventListener('resize', () => this.onWindowResize(), false);
     }
 
+    setupSceneControls() {
+        const nextBtn = document.getElementById('nextScene');
+        const prevBtn = document.getElementById('prevScene');
+        if (nextBtn) nextBtn.addEventListener('click', () => this.gotoScene(this.sceneIndex + 1));
+        if (prevBtn) prevBtn.addEventListener('click', () => this.gotoScene(this.sceneIndex - 1));
+    }
+
     onSelect() {
         if (this.reticle.visible && !this.atomPlaced) {
             this.placeAtom();
@@ -232,6 +241,11 @@ class WebARAtomApp {
         this.hitTestSourceRequested = false;
         
         console.log('âœ… Atom placed successfully');
+
+        // Show scene footer controls now
+        const footer = document.getElementById('sceneFooter');
+        if (footer) footer.classList.remove('hidden');
+        this.gotoScene(0);
     }
 
     onWindowResize() {
@@ -382,6 +396,102 @@ class WebARAtomApp {
                 <p>لنتعرف عليها!</p>
             `;
         }
+    }
+
+    updateSceneIndicator() {
+        const ind = document.getElementById('sceneIndicator');
+        if (!ind) return;
+        const human = this.sceneIndex + 1;
+        ind.textContent = `المشهد ${human} / ٦`;
+    }
+
+    gotoScene(index) {
+        if (!this.atomPlaced) return;
+        const clamped = Math.max(0, Math.min(5, index));
+        this.sceneIndex = clamped;
+        this.updateSceneIndicator();
+        const panel = document.getElementById('eduPanel');
+        const challenge = document.getElementById('challengeOverlay');
+        if (challenge) challenge.classList.add('hidden');
+        if (!panel) return;
+
+        // Reset any highlights
+        if (this.atom && this.atom.clearHighlights) this.atom.clearHighlights();
+        if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
+
+        switch (clamped) {
+            case 0: // Scene 1: ظهور الذرة
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>معلومات تعليمية</h3>
+                    <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                    <p>لنتعرف عليها!</p>
+                `;
+                break;
+            case 1: // Scene 2: البروتون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>البروتونات</h3>
+                    <p>توجد البروتونات داخل نواة الذرة، وتحمل الشحنة الموجبة، وتحدد نوع العنصر (العدد الذري).</p>
+                `;
+                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('proton', 1);
+                if (this.atom && this.atom.fadeExcept) this.atom.fadeExcept(this.atom.nucleusGroup, 0.05);
+                break;
+            case 2: // Scene 3: النيوترون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>النيوترونات</h3>
+                    <p>توجد داخل النواة وهي متعادلة، أي لا تحمل شحنة، وتساهم في استقرار النواة.</p>
+                `;
+                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('neutron', 1);
+                if (this.atom && this.atom.fadeExcept) this.atom.fadeExcept(this.atom.nucleusGroup, 0.05);
+                break;
+            case 3: // Scene 4: الإلكترون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>الإلكترونات</h3>
+                    <p>الإلكترونات تدور حول النواة في مستويات طاقة مختلفة وتشكل سحابة إلكترونية وشحنتها سالبة.</p>
+                `;
+                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('electron', 1);
+                break;
+            case 4: // Scene 5: التحدي
+                panel.classList.add('hidden');
+                if (challenge) challenge.classList.remove('hidden');
+                this.setupChallengeDnD();
+                break;
+            case 5: // Scene 6: الملخص
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>ملخص</h3>
+                    <p>الذرّة تتكون من: بروتونات موجبة ونيوترونات متعادلة (يشكلان النواة)، وإلكترونات سالبة تدور حول النواة في مستويات الطاقة مكوّنة السحابة الإلكترونية.</p>
+                `;
+                break;
+        }
+    }
+
+    setupChallengeDnD() {
+        const cards = document.querySelectorAll('#challengeOverlay .card');
+        const zones = document.querySelectorAll('#challengeOverlay .dropzone');
+        cards.forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', card.getAttribute('data-key'));
+            });
+        });
+        zones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const key = e.dataTransfer.getData('text/plain');
+                const target = zone.getAttribute('data-target');
+                if (key === target) {
+                    zone.textContent = `✔ تم وضع ${key === 'proton' ? 'البروتون' : key === 'neutron' ? 'النيترون' : 'الإلكترون'} بنجاح`;
+                    zone.style.background = '#e7ffef';
+                } else {
+                    zone.textContent = '✖ فكر جيدًا… المحاولة مرة أخرى';
+                    zone.style.background = '#ffe7e7';
+                }
+            });
+        });
     }
 
     showError(message) {
