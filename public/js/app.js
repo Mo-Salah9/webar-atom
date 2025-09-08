@@ -184,7 +184,7 @@ class WebARAtomApp {
 
         // Listen for part selection to update UI text
         this.interactionManager.on('selectPart', (part) => {
-            this.updateEducationText(part);
+            this.handlePartSelection(part);
         });
     }
 
@@ -376,25 +376,66 @@ class WebARAtomApp {
         `;
     }
 
-    updateEducationText(part) {
+    handlePartSelection(part) {
+        // Only handle part selection in Scene 1
+        if (this.sceneIndex === 0) {
+            this.showPartInfo(part);
+        }
+    }
+
+    showPartInfo(part) {
         const panel = document.getElementById('eduPanel');
         if (!panel) return;
+
+        // Clear any existing highlights first
+        if (this.atom && this.atom.clearHighlights) {
+            this.atom.clearHighlights();
+        }
+
         if (part === 'nucleus') {
             panel.innerHTML = `
-                <h3>معلومات تعليمية</h3>
-                <p>هنا تقع البروتونات والنيوترونات</p>
+                <h3>النواة</h3>
+                <p>هنا تقع البروتونات والنيوترونات في مركز الذرّة.</p>
+                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
             `;
+            // Highlight nucleus (both protons and neutrons)
+            if (this.atom && this.atom.highlightKind) {
+                this.atom.highlightKind('proton');
+                // Also highlight neutrons
+                setTimeout(() => {
+                    if (this.atom && this.atom.highlightKind) {
+                        this.atom.highlightKind('neutron');
+                    }
+                }, 100);
+            }
         } else if (part === 'electron' || part === 'orbit') {
             panel.innerHTML = `
-                <h3>معلومات تعليمية</h3>
-                <p>الإلكترونات تدور حول النواة.</p>
+                <h3>الإلكترونات</h3>
+                <p>الإلكترونات تدور حول النواة في مستويات طاقة مختلفة.</p>
+                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة.</p>
             `;
+            // Highlight electrons
+            if (this.atom && this.atom.highlightKind) {
+                this.atom.highlightKind('electron');
+            }
         } else {
+            // Default intro text
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>
                 <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
                 <p>لنتعرف عليها!</p>
             `;
+        }
+    }
+
+    updateEducationText(part) {
+        // This method is now only used for scene transitions
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
+        
+        // Only update text for scene transitions, not part selections
+        if (this.sceneIndex !== 0) {
+            this.showPartInfo(part);
         }
     }
 
@@ -426,6 +467,7 @@ class WebARAtomApp {
                     <h3>معلومات تعليمية</h3>
                     <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
                     <p>لنتعرف عليها!</p>
+                    <p><em>اضغط على أي جزء من الذرّة لمعرفة المزيد عنه</em></p>
                 `;
                 break;
             case 1: // Scene 2: البروتون
