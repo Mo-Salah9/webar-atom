@@ -339,18 +339,22 @@ export class AtomModel {
                 mat.transparent = true;
                 
                 if (shouldKeep) {
-                    // TARGET: Completely opaque, solid material with bright glow
+                    // TARGET: Completely opaque, solid material with colored glow
                     mat.opacity = 1.0;
                     mat.transparent = false; // Completely opaque
                     mat.alphaTest = 0; // No alpha testing
-                    if (mat.emissive) {
-                        mat.emissive.setHex(0xffffff); // Very bright white glow
-                    }
-                    // Make the base color brighter too
+                    
+                    // Make the base color brighter and set matching emissive
                     if (kind === 'proton') {
                         mat.color.setHex(0xff0000); // Bright pure red
+                        if (mat.emissive) {
+                            mat.emissive.setHex(0xff3333); // Red glow, not white
+                        }
                     } else if (kind === 'neutron') {
                         mat.color.setHex(0x0066ff); // Bright pure blue
+                        if (mat.emissive) {
+                            mat.emissive.setHex(0x3366ff); // Blue glow, not white
+                        }
                     }
                 } else {
                     // OTHERS: Make others visible at 10% opacity
