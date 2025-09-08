@@ -386,6 +386,7 @@ export class AtomModel {
         });
     }
 
+    
     animate(deltaTime) {
         this.time += deltaTime;
         
