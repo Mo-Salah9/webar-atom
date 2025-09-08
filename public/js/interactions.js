@@ -123,20 +123,21 @@ export class InteractionManager {
             const { x, y } = this.activePointers.get(event.pointerId);
             const intersections = this.raycastFromScreen(x, y);
             if (intersections.length > 0) {
-                // Fade all other parts except the clicked part's subtree
                 const clickedObject = intersections[0].object;
-                if (this.atom.fadeExcept) {
-                    this.atom.fadeExcept(clickedObject, 0.1);
+                // Apply nucleus-specific highlight if tapping a proton/neutron
+                if (clickedObject && clickedObject.userData && clickedObject.userData.isNucleus && this.atom.applyHighlight) {
+                    this.atom.applyHighlight(clickedObject);
                 }
+                // Fade all other parts except the clicked part's subtree
+                if (this.atom.fadeExcept) this.atom.fadeExcept(clickedObject, 0.1);
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
                 this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
                 this.isTouchGrabbing = false; // disable move
             } else {
                 // Tap empty space restores opacity
-                if (this.atom.restoreOpacity) {
-                    this.atom.restoreOpacity();
-                }
+                if (this.atom.clearHighlight) this.atom.clearHighlight();
+                if (this.atom.restoreOpacity) this.atom.restoreOpacity();
             }
         } else if (this.activePointers.size === 2) {
             // Start pinch scaling

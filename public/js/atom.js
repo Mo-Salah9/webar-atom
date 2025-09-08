@@ -18,6 +18,8 @@ export class AtomModel {
         this._fadeTargets = []; // array of { material, from, to }
         this._fadeDuration = 0.25; // seconds
         this._fadeElapsed = 0;
+        // Nucleus highlight state
+        this._highlighted = new Set(); // set of meshes
         
         this.createAtom();
     }
@@ -75,6 +77,9 @@ export class AtomModel {
                 isProton ? protonGeometry : neutronGeometry,
                 isProton ? protonMaterial : neutronMaterial
             );
+            // Tag nucleus type for interaction
+            particle.userData.isNucleus = true;
+            particle.userData.nucleusType = isProton ? 'proton' : 'neutron';
             
             if (positions[i]) {
                 particle.position.set(...positions[i]);
@@ -91,6 +96,8 @@ export class AtomModel {
             
             particle.userData.originalPosition = particle.position.clone();
             particle.userData.vibrationPhase = Math.random() * Math.PI * 2;
+            // Store original material emissive settings on demand
+            particle.userData._origEmissive = null;
             
             nucleusGroup.add(particle);
             this.nucleus.push(particle);
@@ -352,6 +359,23 @@ export class AtomModel {
                 this._fadeTargets = [];
             }
         }
+
+        // Pulse highlight on selected nucleus particles
+        if (this._highlighted.size > 0) {
+            const pulse = 1 + Math.sin(this.time * 6) * 0.12; // scale pulse
+            const emissivePulse = 0.6 + (Math.sin(this.time * 6) * 0.4 + 0.4); // 0.2..1.0
+            this._highlighted.forEach((mesh) => {
+                // Scale pulse
+                mesh.scale.setScalar(pulse);
+                // Emissive pulse
+                const mat = mesh.material;
+                if (mat && mat.isMeshStandardMaterial) {
+                    mat.emissiveIntensity = (mesh.userData._origEmissive && mesh.userData._origEmissive.intensity !== undefined)
+                        ? mesh.userData._origEmissive.intensity * emissivePulse
+                        : emissivePulse;
+                }
+            });
+        }
     }
 
     updateElectronTrail(electron) {
@@ -489,5 +513,57 @@ export class AtomModel {
         }
         this._selectionKeepSet = null;
         this._isFaded = false;
+    }
+
+    // Nucleus highlighting
+    applyHighlight(targetObject) {
+        if (!targetObject) return;
+        // Find the nucleus mesh that was clicked (itself if mesh, or parent if not nucleus)
+        let mesh = targetObject;
+        // Traverse up until we find an object flagged as nucleus or reach group
+        while (mesh && mesh !== this.group && !mesh.userData.isNucleus) {
+            mesh = mesh.parent;
+        }
+        if (!mesh || !mesh.userData.isNucleus) return;
+
+        // Clear previous highlights before applying new
+        this.clearHighlight();
+
+        // Store original emissive settings if first time
+        const mat = mesh.material;
+        if (mat && mat.isMeshStandardMaterial) {
+            if (!mesh.userData._origEmissive) {
+                mesh.userData._origEmissive = {
+                    color: mat.emissive ? mat.emissive.clone() : null,
+                    intensity: mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1
+                };
+            }
+            // Boost emissive color slightly towards white for glow
+            mat.emissive = mat.emissive || new THREE.Color(0x000000);
+            const glowColor = mesh.userData.nucleusType === 'proton' ? new THREE.Color(0xff6666) : new THREE.Color(0x88aaff);
+            mat.emissive.copy(glowColor);
+            mat.emissiveIntensity = 1.0;
+        }
+
+        // Add to highlighted set
+        this._highlighted.add(mesh);
+    }
+
+    clearHighlight() {
+        if (this._highlighted.size === 0) return;
+        this._highlighted.forEach((mesh) => {
+            // Restore scale
+            mesh.scale.setScalar(1);
+            // Restore emissive
+            const mat = mesh.material;
+            if (mat && mat.isMeshStandardMaterial) {
+                const orig = mesh.userData._origEmissive;
+                if (orig) {
+                    if (orig.color) mat.emissive.copy(orig.color);
+                    if (orig.intensity !== undefined) mat.emissiveIntensity = orig.intensity;
+                }
+            }
+        });
+        this._highlighted.clear();
     }
 }
