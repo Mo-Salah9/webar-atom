@@ -47,43 +47,6 @@ export class AtomModel {
             opacity: 1.0
         });
 
-        // Create text geometry for + and - signs
-        const textLoader = new THREE.FontLoader();
-        const textMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.9
-        });
-
-        // Create a simple + sign geometry for protons
-        const createPlusSign = () => {
-            const plusGroup = new THREE.Group();
-            
-            // Vertical line
-            const verticalGeometry = new THREE.BoxGeometry(0.008, 0.02, 0.002);
-            const verticalMesh = new THREE.Mesh(verticalGeometry, textMaterial);
-            plusGroup.add(verticalMesh);
-            
-            // Horizontal line
-            const horizontalGeometry = new THREE.BoxGeometry(0.02, 0.008, 0.002);
-            const horizontalMesh = new THREE.Mesh(horizontalGeometry, textMaterial);
-            plusGroup.add(horizontalMesh);
-            
-            return plusGroup;
-        };
-
-        // Create a simple - sign geometry for electrons
-        const createMinusSign = () => {
-            const minusGroup = new THREE.Group();
-            
-            // Horizontal line
-            const horizontalGeometry = new THREE.BoxGeometry(0.015, 0.006, 0.002);
-            const horizontalMesh = new THREE.Mesh(horizontalGeometry, textMaterial);
-            minusGroup.add(horizontalMesh);
-            
-            return minusGroup;
-        };
-
         // Arrange nucleus particles in a more realistic cluster
         const positions = [
             // Inner core
@@ -126,14 +89,6 @@ export class AtomModel {
             particle.userData.originalPosition = particle.position.clone();
             particle.userData.vibrationPhase = Math.random() * Math.PI * 2;
             particle.userData.kind = isProton ? 'proton' : 'neutron';
-            
-            // Add + sign to protons
-            if (isProton) {
-                const plusSign = createPlusSign();
-                plusSign.position.set(0, 0, 0.045); // Position slightly in front of the sphere
-                particle.add(plusSign);
-                particle.userData.plusSign = plusSign;
-            }
             
             // Tag as nucleus part
             particle.userData.part = 'nucleus';
@@ -243,25 +198,6 @@ export class AtomModel {
             opacity: 1.0
         });
 
-        // Create text material for - signs
-        const textMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.9
-        });
-
-        // Create a simple - sign geometry for electrons
-        const createMinusSign = () => {
-            const minusGroup = new THREE.Group();
-            
-            // Horizontal line
-            const horizontalGeometry = new THREE.BoxGeometry(0.015, 0.006, 0.002);
-            const horizontalMesh = new THREE.Mesh(horizontalGeometry, textMaterial);
-            minusGroup.add(horizontalMesh);
-            
-            return minusGroup;
-        };
-
         // Electron configurations matching orbitals
         const electronConfigs = [
             // First shell (2 electrons)
@@ -316,12 +252,6 @@ export class AtomModel {
                 trailPoints: []
             };
             
-            // Add - sign to electrons
-            const minusSign = createMinusSign();
-            minusSign.position.set(0, 0, 0.03); // Position slightly in front of the sphere
-            electron.add(minusSign);
-            electron.userData.minusSign = minusSign;
-            
             // Tag as electron part
             electron.userData.part = 'electron';
             this.group.add(electron);
@@ -358,25 +288,18 @@ export class AtomModel {
         const keepSet = new Set();
         
         if (kind === 'proton' || kind === 'neutron') {
-            // Keep only matching particles and their signs
+            // Keep only matching particles
             this.nucleus.forEach(p => { 
                 if (p.userData.kind === kind) {
                     keepSet.add(p);
-                    // Also include the + sign for protons
-                    if (kind === 'proton' && p.userData.plusSign) {
-                        keepSet.add(p.userData.plusSign);
-                    }
                 }
             });
         } else if (kind === 'electron') {
-            // Keep electrons, their trails, and their - signs
+            // Keep electrons and their trails
             this.electrons.forEach(e => {
                 keepSet.add(e);
                 if (e.userData && e.userData.trail) {
                     keepSet.add(e.userData.trail);
-                }
-                if (e.userData && e.userData.minusSign) {
-                    keepSet.add(e.userData.minusSign);
                 }
             });
         }
