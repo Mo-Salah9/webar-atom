@@ -13,6 +13,11 @@ export class AtomModel {
         this.time = 0;
         this._isFaded = false;
         this._selectionKeepSet = null;
+        // Animated fading state
+        this._fadeIsAnimating = false;
+        this._fadeTargets = []; // array of { material, from, to }
+        this._fadeDuration = 0.25; // seconds
+        this._fadeElapsed = 0;
         
         this.createAtom();
     }
@@ -329,6 +334,24 @@ export class AtomModel {
         // Rotate entire nucleus group slowly
         this.nucleusGroup.rotation.y += 0.005;
         this.nucleusGroup.rotation.x += 0.003;
+
+        // Animate fade transitions if active
+        if (this._fadeIsAnimating && this._fadeTargets.length > 0) {
+            this._fadeElapsed += deltaTime;
+            const t = Math.min(1, this._fadeElapsed / this._fadeDuration);
+            // Ease in-out (S-curve)
+            const eased = t * t * (3 - 2 * t);
+            this._fadeTargets.forEach((ft) => {
+                const newOpacity = ft.from + (ft.to - ft.from) * eased;
+                ft.material.opacity = newOpacity;
+                // Ensure transparency remains enabled during tween
+                ft.material.transparent = true;
+            });
+            if (t >= 1) {
+                this._fadeIsAnimating = false;
+                this._fadeTargets = [];
+            }
+        }
     }
 
     updateElectronTrail(electron) {
@@ -401,50 +424,69 @@ export class AtomModel {
         this._selectionKeepSet = keepSet;
 
         // Traverse all renderable objects in the atom and adjust opacity
+        const tweenTargets = [];
         this.group.traverse((obj) => {
             const material = obj.material;
             if (!material) return;
-
             const materials = Array.isArray(material) ? material : [material];
             const shouldKeep = keepSet.has(obj);
-
             materials.forEach((mat) => {
-                // Store originals once
                 if (mat.userData._origTransparent === undefined) {
                     mat.userData._origTransparent = mat.transparent === true;
                 }
                 if (mat.userData._origOpacity === undefined) {
                     mat.userData._origOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
                 }
-
-                // Ensure transparency enabled to allow fading
+                const targetOpacity = shouldKeep ? 1.0 : fadeOpacity;
+                const fromOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
+                // If already at target, skip
+                if (Math.abs(fromOpacity - targetOpacity) < 1e-3) {
+                    mat.opacity = targetOpacity;
+                    mat.transparent = true;
+                    return;
+                }
+                tweenTargets.push({ material: mat, from: fromOpacity, to: targetOpacity });
+                // Enable transparency during animation
                 mat.transparent = true;
-                // Keep selected subtree fully visible; fade everything else
-                mat.opacity = shouldKeep ? 1.0 : fadeOpacity;
-                // For line materials that ignore depth, leave as-is; opacity still applies
             });
         });
-
+        if (tweenTargets.length > 0) {
+            this._fadeTargets = tweenTargets;
+            this._fadeElapsed = 0;
+            this._fadeIsAnimating = true;
+        }
         this._isFaded = true;
     }
 
     restoreOpacity() {
         if (!this._isFaded) return;
+        const tweenTargets = [];
         this.group.traverse((obj) => {
             const material = obj.material;
             if (!material) return;
             const materials = Array.isArray(material) ? material : [material];
             materials.forEach((mat) => {
-                if (mat.userData && mat.userData._origOpacity !== undefined) {
-                    mat.opacity = mat.userData._origOpacity;
-                } else {
-                    mat.opacity = 1.0;
+                const origOpacity = (mat.userData && mat.userData._origOpacity !== undefined)
+                    ? mat.userData._origOpacity
+                    : 1.0;
+                const fromOpacity = mat.opacity !== undefined ? mat.opacity : 1.0;
+                if (Math.abs(fromOpacity - origOpacity) < 1e-3) {
+                    mat.opacity = origOpacity;
+                    mat.transparent = (mat.userData && mat.userData._origTransparent !== undefined)
+                        ? mat.userData._origTransparent
+                        : mat.transparent;
+                    return;
                 }
-                if (mat.userData && mat.userData._origTransparent !== undefined) {
-                    mat.transparent = mat.userData._origTransparent;
-                }
+                tweenTargets.push({ material: mat, from: fromOpacity, to: origOpacity });
+                // Keep transparent during tween to avoid pop
+                mat.transparent = true;
             });
         });
+        if (tweenTargets.length > 0) {
+            this._fadeTargets = tweenTargets;
+            this._fadeElapsed = 0;
+            this._fadeIsAnimating = true;
+        }
         this._selectionKeepSet = null;
         this._isFaded = false;
     }
