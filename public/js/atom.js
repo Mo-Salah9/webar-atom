@@ -273,30 +273,10 @@ export class AtomModel {
             this.group.add(electron);
             this.electrons.push(electron);
 
-            // Create electron trail
-            this.createElectronTrail(electron, index);
+            // Electron trails removed
         });
     }
 
-    createElectronTrail(electron, index) {
-        const trailGeometry = new THREE.BufferGeometry();
-        const trailMaterial = new THREE.LineBasicMaterial({
-            color: 0x00ff66,
-            transparent: true,
-            opacity: 0.3,
-            linewidth: 2
-        });
-
-        const trailPositions = new Float32Array(60 * 3); // 20 trail points
-        trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-
-        const trail = new THREE.Line(trailGeometry, trailMaterial);
-        this.group.add(trail);
-        
-        electron.userData.trail = trail;
-        electron.userData.trailPositions = trailPositions;
-        electron.userData.trailIndex = 0;
-    }
 
     // Glow target, dim everything else
     highlightKind(kind, intensity = 1.0) {
