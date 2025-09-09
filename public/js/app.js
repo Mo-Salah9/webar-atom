@@ -548,64 +548,128 @@ class WebARAtomApp {
     handleAtomClick(event) {
         if (this.sceneIndex !== 0 || !this.atom) return;
 
+        console.log('Atom click detected at:', event.clientX, event.clientY);
+
         // Convert screen coordinates to normalized device coordinates
         const mouse = new THREE.Vector2();
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        // Create raycaster
+        // Create raycaster with better settings for small objects
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, this.camera);
+        
+        // Increase threshold for better detection of small spheres
+        raycaster.params.Points.threshold = 0.05;
+        raycaster.params.Line.threshold = 0.05;
 
-        // Get all atom objects for intersection
-        const atomObjects = [];
+        // Get all nucleus particles (protons and neutrons) specifically
+        const nucleusParticles = [];
+        const electronObjects = [];
+        const orbitObjects = [];
+        
         this.atom.getGroup().traverse((child) => {
-            if (child.isMesh && child.visible) {
-                atomObjects.push(child);
+            if (child.isMesh && child.visible && child.userData) {
+                if (child.userData.kind === 'proton' || child.userData.kind === 'neutron') {
+                    nucleusParticles.push(child);
+                    console.log('Found nucleus particle:', child.userData.kind);
+                } else if (child.userData.part === 'electron') {
+                    electronObjects.push(child);
+                    console.log('Found electron');
+                } else if (child.userData.part === 'orbit') {
+                    orbitObjects.push(child);
+                    console.log('Found orbit');
+                }
             }
         });
 
-        // Check for intersections
-        const intersects = raycaster.intersectObjects(atomObjects);
+        console.log('Total nucleus particles:', nucleusParticles.length);
+        console.log('Total electrons:', electronObjects.length);
+        console.log('Total orbits:', orbitObjects.length);
 
+        // Check intersections with nucleus particles first (higher priority)
+        let intersects = raycaster.intersectObjects(nucleusParticles);
+        
         if (intersects.length > 0) {
-            const clickedObject = intersects[0].object;
-            this.handleAtomPartClick(clickedObject);
+            console.log('Hit nucleus particle:', intersects[0].object.userData.kind);
+            this.handleNucleusClick();
+            return;
+        }
+
+        // Check intersections with electrons
+        intersects = raycaster.intersectObjects(electronObjects);
+        
+        if (intersects.length > 0) {
+            console.log('Hit electron');
+            this.handleElectronClick();
+            return;
+        }
+
+        // Check intersections with orbits
+        intersects = raycaster.intersectObjects(orbitObjects);
+        
+        if (intersects.length > 0) {
+            console.log('Hit orbit');
+            this.handleElectronClick();
+            return;
+        }
+
+        // If no specific parts were hit, check if we're close to the atom center (nucleus area)
+        const atomCenter = this.atom.getGroup().position;
+        const clickWorldPos = new THREE.Vector3();
+        
+        // Project mouse position to a plane at the atom's Z position
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -atomCenter.z);
+        raycaster.ray.intersectPlane(plane, clickWorldPos);
+        
+        const distanceToCenter = clickWorldPos.distanceTo(atomCenter);
+        console.log('Distance to atom center:', distanceToCenter);
+        
+        if (distanceToCenter < 0.15) { // Within nucleus area
+            console.log('Click near nucleus area');
+            this.handleNucleusClick();
+        } else if (distanceToCenter < 0.5) { // Within electron area
+            console.log('Click near electron area');
+            this.handleElectronClick();
         } else {
             // Clicked on empty space
+            console.log('Clicked on empty space');
             this.handleEmptySpaceClick();
         }
     }
 
-    handleAtomPartClick(clickedObject) {
+    handleNucleusClick() {
         const panel = document.getElementById('eduPanel');
         if (!panel) return;
 
-        // Determine what part was clicked
-        const userData = clickedObject.userData;
+        console.log('Handling nucleus click');
         
-        if (userData.part === 'nucleus' || userData.kind === 'proton' || userData.kind === 'neutron') {
-            // Clicked on nucleus (protons or neutrons)
-            panel.innerHTML = `
-                <h3>النواة</h3>
-                <p>هنا تقع البروتونات والنيوترونات.</p>
-                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
-            `;
-            
-            // Add nucleus vibration effect
-            this.animateNucleusVibration();
-            
-        } else if (userData.part === 'electron' || userData.part === 'orbit') {
-            // Clicked on electron or orbit
-            panel.innerHTML = `
-                <h3>الإلكترونات</h3>
-                <p>الإلكترونات تدور حول النواة.</p>
-                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة وشحنتها سالبة.</p>
-            `;
-            
-            // Add electron movement effect
-            this.animateElectronMovement();
-        }
+        // Show nucleus information
+        panel.innerHTML = `
+            <h3>النواة</h3>
+            <p>هنا تقع البروتونات والنيوترونات.</p>
+            <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
+        `;
+        
+        // Add nucleus vibration effect
+        this.animateNucleusVibration();
+    }
+
+    handleElectronClick() {
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
+
+        console.log('Handling electron click');
+        
+        // Show electron information
+        panel.innerHTML = `
+            <h3>الإلكترونات</h3>
+            <p>الإلكترونات تدور حول النواة.</p>
+            <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة وشحنتها سالبة.</p>
+        `;
+        
+        // Add electron movement effect
+        this.animateElectronMovement();
     }
 
     handleEmptySpaceClick() {
