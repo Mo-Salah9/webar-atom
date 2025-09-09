@@ -569,10 +569,11 @@ class WebARAtomApp {
         const orbitObjects = [];
         
         this.atom.getGroup().traverse((child) => {
-            if (child.isMesh && child.visible && child.userData) {
-                if (child.userData.kind === 'proton' || child.userData.kind === 'neutron') {
+            if (child.isMesh && child.userData) {
+                if (child.userData.kind === 'proton' || child.userData.kind === 'neutron' || 
+                    (child.userData.part === 'nucleus' && child.userData.kind === 'collision')) {
                     nucleusParticles.push(child);
-                    console.log('Found nucleus particle:', child.userData.kind);
+                    console.log('Found nucleus particle/collision:', child.userData.kind || 'collision');
                 } else if (child.userData.part === 'electron') {
                     electronObjects.push(child);
                     console.log('Found electron');
@@ -614,26 +615,40 @@ class WebARAtomApp {
             return;
         }
 
-        // If no specific parts were hit, check if we're close to the atom center (nucleus area)
-        const atomCenter = this.atom.getGroup().position;
-        const clickWorldPos = new THREE.Vector3();
+        // If no direct hits, use screen-based detection
+        console.log('No direct hits, using screen-based detection');
         
-        // Project mouse position to a plane at the atom's Z position
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -atomCenter.z);
-        raycaster.ray.intersectPlane(plane, clickWorldPos);
+        // Get the nucleus center in screen coordinates
+        const nucleusCenter = new THREE.Vector3(0, 0, 0); // Nucleus is at origin of atom group
+        nucleusCenter.project(this.camera);
         
-        const distanceToCenter = clickWorldPos.distanceTo(atomCenter);
-        console.log('Distance to atom center:', distanceToCenter);
+        // Convert normalized mouse coordinates to screen pixels
+        const mouseScreenX = (mouse.x + 1) * window.innerWidth / 2;
+        const mouseScreenY = (-mouse.y + 1) * window.innerHeight / 2;
         
-        if (distanceToCenter < 0.15) { // Within nucleus area
-            console.log('Click near nucleus area');
+        // Convert nucleus center to screen pixels
+        const nucleusScreenX = (nucleusCenter.x + 1) * window.innerWidth / 2;
+        const nucleusScreenY = (-nucleusCenter.y + 1) * window.innerHeight / 2;
+        
+        // Calculate distance in screen pixels
+        const screenDistance = Math.sqrt(
+            Math.pow(mouseScreenX - nucleusScreenX, 2) + 
+            Math.pow(mouseScreenY - nucleusScreenY, 2)
+        );
+        
+        console.log('Screen distance to nucleus:', screenDistance);
+        console.log('Mouse screen pos:', mouseScreenX, mouseScreenY);
+        console.log('Nucleus screen pos:', nucleusScreenX, nucleusScreenY);
+        
+        if (screenDistance < 80) { // Within 80 pixels of nucleus center
+            console.log('Click near nucleus area (screen-based)');
             this.handleNucleusClick();
-        } else if (distanceToCenter < 0.5) { // Within electron area
-            console.log('Click near electron area');
+        } else if (screenDistance < 150) { // Within 150 pixels (electron area)
+            console.log('Click near electron area (screen-based)');
             this.handleElectronClick();
         } else {
             // Clicked on empty space
-            console.log('Clicked on empty space');
+            console.log('Clicked on empty space (screen-based)');
             this.handleEmptySpaceClick();
         }
     }

@@ -101,6 +101,19 @@ export class AtomModel {
 
         // Tag the whole nucleus group
         nucleusGroup.userData.part = 'nucleus';
+        
+        // Add invisible collision sphere for easier clicking
+        const collisionGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+        const collisionMaterial = new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            visible: false
+        });
+        const collisionSphere = new THREE.Mesh(collisionGeometry, collisionMaterial);
+        collisionSphere.userData.part = 'nucleus';
+        collisionSphere.userData.kind = 'collision';
+        nucleusGroup.add(collisionSphere);
+        
         this.group.add(nucleusGroup);
         this.nucleusGroup = nucleusGroup;
     }
