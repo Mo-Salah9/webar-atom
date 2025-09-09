@@ -467,6 +467,10 @@ class WebARAtomApp {
         if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
         if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
         if (this.atom && this.atom.stopNeutronAnimation) this.atom.stopNeutronAnimation();
+        // Disable challenge mode if leaving Scene 5
+        if (this.atom && this.atom.disableChallengeMode && this.sceneIndex === 4) {
+            this.atom.disableChallengeMode();
+        }
 
         switch (clamped) {
             case 0: // Scene 1: ظهور الذرة
@@ -512,6 +516,10 @@ class WebARAtomApp {
                 panel.classList.add('hidden');
                 if (challenge) challenge.classList.remove('hidden');
                 this.setupChallengeDnD();
+                // Enable 3D drag and drop challenge
+                if (this.atom && this.atom.enableChallengeMode) {
+                    this.atom.enableChallengeMode();
+                }
                 break;
             case 5: // Scene 6: الملخص
                 panel.classList.remove('hidden');
@@ -524,28 +532,189 @@ class WebARAtomApp {
     }
 
     setupChallengeDnD() {
-        const cards = document.querySelectorAll('#challengeOverlay .card');
-        const zones = document.querySelectorAll('#challengeOverlay .dropzone');
-        cards.forEach(card => {
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', card.getAttribute('data-key'));
-            });
-        });
-        zones.forEach(zone => {
-            zone.addEventListener('dragover', (e) => { e.preventDefault(); });
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const key = e.dataTransfer.getData('text/plain');
-                const target = zone.getAttribute('data-target');
-                if (key === target) {
-                    zone.textContent = `✔ تم وضع ${key === 'proton' ? 'البروتون' : key === 'neutron' ? 'النيترون' : 'الإلكترون'} بنجاح`;
-                    zone.style.background = '#e7ffef';
-                } else {
-                    zone.textContent = '✖ فكر جيدًا… المحاولة مرة أخرى';
-                    zone.style.background = '#ffe7e7';
-                }
-            });
-        });
+        // Update the challenge overlay UI
+        const challenge = document.getElementById('challengeOverlay');
+        if (challenge) {
+            challenge.innerHTML = `
+                <h3>التحدي التفاعلي (سحب وإفلات)</h3>
+                <p>اسحب كل بطاقة إلى مكانها الصحيح في الذرّة</p>
+                <div class="challenge-instructions">
+                    <div class="instruction-item">
+                        <div class="color-indicator proton"></div>
+                        <span>البروتونات - في النواة</span>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="color-indicator neutron"></div>
+                        <span>النيوترونات - في النواة</span>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="color-indicator electron"></div>
+                        <span>الإلكترونات - حول النواة</span>
+                    </div>
+                </div>
+                <div class="challenge-status">
+                    <p id="challengeStatus">ابدأ بسحب البطاقات إلى أماكنها الصحيحة</p>
+                </div>
+            `;
+        }
+
+        // Setup 3D interaction handling
+        this.setup3DDragAndDrop();
+    }
+
+    setup3DDragAndDrop() {
+        // This will be handled by the interaction manager
+        // We'll add touch/mouse events for dragging the 3D cards
+        this.draggingCard = null;
+        this.dragStartPosition = null;
+        
+        // Add event listeners for touch/mouse interactions
+        this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
+        this.renderer.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+        this.renderer.domElement.addEventListener('mouseup', this.onMouseUp.bind(this));
+        
+        this.renderer.domElement.addEventListener('touchstart', this.onTouchStart.bind(this));
+        this.renderer.domElement.addEventListener('touchmove', this.onTouchMove.bind(this));
+        this.renderer.domElement.addEventListener('touchend', this.onTouchEnd.bind(this));
+    }
+
+    onMouseDown(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode) return;
+        
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        this.startDrag(mouse);
+    }
+
+    onMouseMove(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
+        
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        this.updateDrag(mouse);
+    }
+
+    onMouseUp(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
+        
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        this.endDrag(mouse);
+    }
+
+    onTouchStart(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode) return;
+        
+        event.preventDefault();
+        const touch = event.touches[0];
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        this.startDrag(mouse);
+    }
+
+    onTouchMove(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
+        
+        event.preventDefault();
+        const touch = event.touches[0];
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        this.updateDrag(mouse);
+    }
+
+    onTouchEnd(event) {
+        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
+        
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        this.endDrag(mouse);
+    }
+
+    startDrag(mouse) {
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        
+        // Check intersection with drag cards
+        const intersects = raycaster.intersectObjects(this.atom.dragCards);
+        if (intersects.length > 0) {
+            const card = intersects[0].object;
+            if (!card.userData.dragged) {
+                this.draggingCard = card.userData.type;
+                this.dragStartPosition = mouse.clone();
+                
+                // Convert screen position to world position
+                const worldPosition = new THREE.Vector3();
+                worldPosition.setFromMatrixPosition(this.atom.getGroup().matrixWorld);
+                this.atom.handleDragStart(this.draggingCard, worldPosition);
+            }
+        }
+    }
+
+    updateDrag(mouse) {
+        if (!this.draggingCard) return;
+        
+        // Convert screen position to world position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        
+        // Create a plane at the atom's position for dragging
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersection = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, intersection);
+        
+        this.atom.handleDragMove(this.draggingCard, intersection);
+    }
+
+    endDrag(mouse) {
+        if (!this.draggingCard) return;
+        
+        // Convert screen position to world position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        
+        // Create a plane at the atom's position for dropping
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersection = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, intersection);
+        
+        const success = this.atom.handleDrop(this.draggingCard, intersection);
+        this.updateChallengeStatus(success);
+        
+        this.draggingCard = null;
+        this.dragStartPosition = null;
+    }
+
+    updateChallengeStatus(success) {
+        const statusElement = document.getElementById('challengeStatus');
+        if (!statusElement) return;
+        
+        if (success) {
+            statusElement.textContent = 'ممتاز! تم وضع البطاقة في المكان الصحيح';
+            statusElement.style.color = '#00aa00';
+        } else {
+            statusElement.textContent = 'فكر جيدًا... المحاولة مرة أخرى';
+            statusElement.style.color = '#aa0000';
+        }
+        
+        // Check if challenge is complete
+        if (this.atom && this.atom.isChallengeComplete()) {
+            statusElement.textContent = '🎉 تهانينا! لقد أكملت التحدي بنجاح!';
+            statusElement.style.color = '#0066cc';
+        }
     }
 
     showError(message) {

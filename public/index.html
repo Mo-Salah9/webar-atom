@@ -182,15 +182,58 @@
             width: min(90vw, 480px);
             background: rgba(255,255,255,0.96);
             border-radius: 12px;
-            padding: 16px;
+            padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             pointer-events: all;
             direction: rtl;
         }
 
-        .challenge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-        .card { background: #f4f5f7; border-radius: 8px; padding: 10px; text-align: center; cursor: grab; }
-        .dropzone { background: #eef3ff; border: 2px dashed #7aa2ff; border-radius: 8px; padding: 10px; min-height: 46px; }
+        .challenge-instructions {
+            margin: 15px 0;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        .color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .color-indicator.proton {
+            background: #ff3333;
+        }
+
+        .color-indicator.neutron {
+            background: #6699ff;
+        }
+
+        .color-indicator.electron {
+            background: #00ff66;
+        }
+
+        .challenge-status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .challenge-status p {
+            margin: 0;
+            font-weight: bold;
+        }
 
         @media (max-width: 768px) {
             .instructions {
@@ -239,20 +282,7 @@
         </div>
 
         <div class="challenge-overlay hidden" id="challengeOverlay">
-            <h3>التحدي التفاعلي</h3>
-            <p>هيا ضع البطاقات في أماكنها الصحيحة</p>
-            <div class="challenge-row">
-                <div class="card" draggable="true" data-key="proton">بروتون</div>
-                <div class="dropzone" data-target="proton">مكان البروتون</div>
-            </div>
-            <div class="challenge-row">
-                <div class="card" draggable="true" data-key="neutron">نيترون</div>
-                <div class="dropzone" data-target="neutron">مكان النيترون</div>
-            </div>
-            <div class="challenge-row">
-                <div class="card" draggable="true" data-key="electron">إلكترون</div>
-                <div class="dropzone" data-target="electron">مكان الإلكترون</div>
-            </div>
+            <!-- Content will be dynamically generated -->
         </div>
     </div>
 
