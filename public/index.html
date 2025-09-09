@@ -298,6 +298,277 @@
             color: #333;
         }
 
+        /* Quiz Page Styles */
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .quiz-header h3 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .quiz-header p {
+            color: #666;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .quiz-content {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .atom-diagram-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .atom-diagram {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .atom-visual {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .nucleus {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ff6b6b, #ff5252);
+            border-radius: 50%;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .proton {
+            width: 12px;
+            height: 12px;
+            background: #ff3333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+            margin: 1px;
+        }
+
+        .neutron {
+            width: 12px;
+            height: 12px;
+            background: #6699ff;
+            border-radius: 50%;
+            margin: 1px;
+        }
+
+        .electron-orbit {
+            position: absolute;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .orbit-1 {
+            width: 120px;
+            height: 120px;
+        }
+
+        .orbit-2 {
+            width: 160px;
+            height: 160px;
+        }
+
+        .electron {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #00ff66;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .orbit-1 .electron:nth-child(1) {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .orbit-1 .electron:nth-child(2) {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .orbit-2 .electron:nth-child(1) {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .orbit-2 .electron:nth-child(2) {
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .orbit-2 .electron:nth-child(3) {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .orbit-2 .electron:nth-child(4) {
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .drop-slot {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .drop-slot.drag-over {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+
+        .drop-slot.correct {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+
+        .drop-slot.incorrect {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        .slot-1 {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .slot-2 {
+            bottom: 20px;
+            left: 20px;
+        }
+
+        .slot-3 {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .slot-content {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .answer-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .answer-card {
+            width: 120px;
+            height: 50px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .answer-card:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .answer-card:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .answer-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+        }
+
+        .answer-card span {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .quiz-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .quiz-status p {
+            margin: 0;
+            font-weight: bold;
+            color: #333;
+        }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -345,26 +616,66 @@
         </div>
 
         <div class="challenge-overlay hidden" id="challengeOverlay">
-            <h3>التحدي التفاعلي (سحب وإفلات)</h3>
-            <p>اسحب كل بطاقة من هنا إلى مكانها الصحيح في الذرّة</p>
-            
-            <div class="drag-cards-container">
-                <div class="drag-card" draggable="true" data-particle="proton">
-                    <div class="particle-icon proton"></div>
-                    <span>بروتون</span>
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <h3>التحدي التفاعلي</h3>
+                    <p>اسحب كل إجابة إلى مكانها الصحيح</p>
                 </div>
-                <div class="drag-card" draggable="true" data-particle="neutron">
-                    <div class="particle-icon neutron"></div>
-                    <span>نيوترون</span>
+                
+                <div class="quiz-content">
+                    <div class="atom-diagram-container">
+                        <div class="atom-diagram">
+                            <!-- 2D Atom Diagram -->
+                            <div class="atom-visual">
+                                <div class="nucleus">
+                                    <div class="proton">+</div>
+                                    <div class="proton">+</div>
+                                    <div class="proton">+</div>
+                                    <div class="neutron"></div>
+                                    <div class="neutron"></div>
+                                    <div class="neutron"></div>
+                                </div>
+                                <div class="electron-orbit orbit-1">
+                                    <div class="electron">-</div>
+                                    <div class="electron">-</div>
+                                </div>
+                                <div class="electron-orbit orbit-2">
+                                    <div class="electron">-</div>
+                                    <div class="electron">-</div>
+                                    <div class="electron">-</div>
+                                    <div class="electron">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Drop slots around the atom -->
+                        <div class="drop-slot slot-1" data-target="electron">
+                            <div class="slot-content"></div>
+                        </div>
+                        <div class="drop-slot slot-2" data-target="proton">
+                            <div class="slot-content"></div>
+                        </div>
+                        <div class="drop-slot slot-3" data-target="neutron">
+                            <div class="slot-content"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="answer-cards">
+                        <div class="answer-card" draggable="true" data-answer="electron">
+                            <span>الكترونات</span>
+                        </div>
+                        <div class="answer-card" draggable="true" data-answer="proton">
+                            <span>بروتونات</span>
+                        </div>
+                        <div class="answer-card" draggable="true" data-answer="neutron">
+                            <span>نيترونات</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="drag-card" draggable="true" data-particle="electron">
-                    <div class="particle-icon electron"></div>
-                    <span>إلكترون</span>
+                
+                <div class="quiz-status">
+                    <p id="quizStatus">ابدأ بسحب الإجابات إلى أماكنها الصحيحة</p>
                 </div>
-            </div>
-            
-            <div class="challenge-status">
-                <p id="challengeStatus">ابدأ بسحب البطاقات إلى أماكنها الصحيحة في الذرّة</p>
             </div>
         </div>
     </div>

@@ -467,10 +467,6 @@ class WebARAtomApp {
         if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
         if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
         if (this.atom && this.atom.stopNeutronAnimation) this.atom.stopNeutronAnimation();
-        // Disable challenge mode if leaving Scene 5
-        if (this.atom && this.atom.disableChallengeMode && this.sceneIndex === 4) {
-            this.atom.disableChallengeMode();
-        }
 
         switch (clamped) {
             case 0: // Scene 1: ظهور الذرة
@@ -516,10 +512,6 @@ class WebARAtomApp {
                 panel.classList.add('hidden');
                 if (challenge) challenge.classList.remove('hidden');
                 this.setupChallengeDnD();
-                // Enable 3D drag and drop challenge
-                if (this.atom && this.atom.enableChallengeMode) {
-                    this.atom.enableChallengeMode();
-                }
                 break;
             case 5: // Scene 6: الملخص
                 panel.classList.remove('hidden');
@@ -532,15 +524,18 @@ class WebARAtomApp {
     }
 
     setupChallengeDnD() {
-        // Setup UI drag and drop to 3D
-        this.setupUIDragAndDrop();
+        // Setup pure UI quiz drag and drop
+        this.setupQuizDragAndDrop();
     }
 
-    setupUIDragAndDrop() {
-        const cards = document.querySelectorAll('#challengeOverlay .drag-card');
-        cards.forEach(card => {
+    setupQuizDragAndDrop() {
+        const answerCards = document.querySelectorAll('#challengeOverlay .answer-card');
+        const dropSlots = document.querySelectorAll('#challengeOverlay .drop-slot');
+        
+        // Setup answer cards
+        answerCards.forEach(card => {
             card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', card.getAttribute('data-particle'));
+                e.dataTransfer.setData('text/plain', card.getAttribute('data-answer'));
                 card.classList.add('dragging');
             });
             
@@ -549,37 +544,76 @@ class WebARAtomApp {
             });
         });
         
-        // Add drop zone to the entire renderer canvas
-        this.renderer.domElement.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-        
-        this.renderer.domElement.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const particleType = e.dataTransfer.getData('text/plain');
-            this.handleUIDrop(particleType, e);
+        // Setup drop slots
+        dropSlots.forEach(slot => {
+            slot.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                slot.classList.add('drag-over');
+            });
+            
+            slot.addEventListener('dragleave', (e) => {
+                slot.classList.remove('drag-over');
+            });
+            
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('drag-over');
+                
+                const answerType = e.dataTransfer.getData('text/plain');
+                const targetType = slot.getAttribute('data-target');
+                
+                this.handleQuizDrop(answerType, targetType, slot);
+            });
         });
     }
 
-    handleUIDrop(particleType, event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode) return;
+    handleQuizDrop(answerType, targetType, slot) {
+        if (this.sceneIndex !== 4) return;
         
-        // Convert screen coordinates to normalized device coordinates
-        const mouse = new THREE.Vector2();
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        const isCorrect = answerType === targetType;
         
-        // Handle the drop in the atom model
-        const success = this.atom.handleUIDrop(particleType, mouse, this.camera);
-        this.updateChallengeStatus(success, particleType);
+        if (isCorrect) {
+            slot.classList.add('correct');
+            slot.classList.remove('incorrect');
+            slot.querySelector('.slot-content').textContent = this.getParticleName(answerType);
+            
+            // Hide the used answer card
+            const usedCard = document.querySelector(`[data-answer="${answerType}"]`);
+            if (usedCard) {
+                usedCard.style.display = 'none';
+            }
+            
+            this.updateQuizStatus(true, answerType);
+        } else {
+            slot.classList.add('incorrect');
+            slot.classList.remove('correct');
+            this.updateQuizStatus(false, answerType);
+            
+            // Reset the slot after a short delay
+            setTimeout(() => {
+                slot.classList.remove('incorrect');
+                slot.querySelector('.slot-content').textContent = '';
+            }, 2000);
+        }
+        
+        // Check if quiz is complete
+        this.checkQuizCompletion();
     }
 
-    updateChallengeStatus(success, particleType) {
-        const statusElement = document.getElementById('challengeStatus');
+    getParticleName(type) {
+        const names = {
+            'proton': 'بروتونات',
+            'neutron': 'نيوترونات',
+            'electron': 'إلكترونات'
+        };
+        return names[type] || type;
+    }
+
+    updateQuizStatus(success, particleType) {
+        const statusElement = document.getElementById('quizStatus');
         if (!statusElement) return;
         
-        const particleName = particleType === 'proton' ? 'البروتون' : 
-                           particleType === 'neutron' ? 'النيوترون' : 'الإلكترون';
+        const particleName = this.getParticleName(particleType);
         
         if (success) {
             statusElement.textContent = `ممتاز! تم وضع ${particleName} في المكان الصحيح`;
@@ -588,11 +622,18 @@ class WebARAtomApp {
             statusElement.textContent = `فكر جيدًا... ${particleName} في المكان الخطأ. المحاولة مرة أخرى`;
             statusElement.style.color = '#aa0000';
         }
+    }
+
+    checkQuizCompletion() {
+        const correctSlots = document.querySelectorAll('#challengeOverlay .drop-slot.correct');
+        const totalSlots = document.querySelectorAll('#challengeOverlay .drop-slot').length;
         
-        // Check if challenge is complete
-        if (this.atom && this.atom.isChallengeComplete()) {
-            statusElement.textContent = '🎉 تهانينا! لقد أكملت التحدي بنجاح!';
-            statusElement.style.color = '#0066cc';
+        if (correctSlots.length === totalSlots) {
+            const statusElement = document.getElementById('quizStatus');
+            if (statusElement) {
+                statusElement.textContent = '🎉 تهانينا! لقد أكملت التحدي بنجاح!';
+                statusElement.style.color = '#0066cc';
+            }
         }
     }
 
