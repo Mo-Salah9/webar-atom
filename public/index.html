@@ -328,9 +328,10 @@
 
         .quiz-content {
             display: flex;
-            gap: 60px;
+            gap: 40px;
             align-items: center;
             justify-content: center;
+            flex-direction: row;
         }
 
         .atom-diagram-container {
@@ -383,18 +384,18 @@
         }
 
         .slot-1 {
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
         }
 
         .slot-2 {
-            bottom: 20px;
-            left: 20px;
+            bottom: 10px;
+            left: 10px;
         }
 
         .slot-3 {
-            bottom: 20px;
-            right: 20px;
+            bottom: 10px;
+            right: 10px;
         }
 
         .slot-content {
@@ -514,6 +515,18 @@
                 </div>
                 
                 <div class="quiz-content">
+                    <div class="answer-cards">
+                        <div class="answer-card" draggable="true" data-answer="electron">
+                            <span>الكترونات</span>
+                        </div>
+                        <div class="answer-card" draggable="true" data-answer="proton">
+                            <span>بروتونات</span>
+                        </div>
+                        <div class="answer-card" draggable="true" data-answer="neutron">
+                            <span>نيترونات</span>
+                        </div>
+                    </div>
+                    
                     <div class="atom-diagram-container">
                         <div class="atom-diagram">
                             <!-- Atom Diagram Image -->
@@ -529,18 +542,6 @@
                         </div>
                         <div class="drop-slot slot-3" data-target="neutron">
                             <div class="slot-content"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="answer-cards">
-                        <div class="answer-card" draggable="true" data-answer="electron">
-                            <span>الكترونات</span>
-                        </div>
-                        <div class="answer-card" draggable="true" data-answer="proton">
-                            <span>بروتونات</span>
-                        </div>
-                        <div class="answer-card" draggable="true" data-answer="neutron">
-                            <span>نيترونات</span>
                         </div>
                     </div>
                 </div>
