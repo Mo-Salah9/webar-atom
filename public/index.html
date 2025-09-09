@@ -318,24 +318,24 @@
         }
 
         .answer-card {
-            min-width: 120px;
+            width: 120px;
             height: 50px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 12px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: grab;
             transition: all 0.3s ease;
             user-select: none;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
 
         .answer-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .answer-card:active {
@@ -345,13 +345,13 @@
 
         .answer-card.dragging {
             opacity: 0.7;
-            transform: rotate(5deg) scale(1.1);
-            z-index: 1000;
+            transform: rotate(5deg);
         }
 
         .answer-card span {
             font-weight: bold;
-            font-size: clamp(12px, 3vw, 14px);
+            color: #333;
+            font-size: 14px;
         }
 
         .quiz-status {
