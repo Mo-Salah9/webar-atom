@@ -235,6 +235,69 @@
             font-weight: bold;
         }
 
+        .drag-cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .drag-card {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .drag-card:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .drag-card:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .drag-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .particle-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .particle-icon.proton {
+            background: #ff3333;
+        }
+
+        .particle-icon.neutron {
+            background: #6699ff;
+        }
+
+        .particle-icon.electron {
+            background: #00ff66;
+        }
+
+        .drag-card span {
+            font-weight: bold;
+            color: #333;
+        }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -282,7 +345,27 @@
         </div>
 
         <div class="challenge-overlay hidden" id="challengeOverlay">
-            <!-- Content will be dynamically generated -->
+            <h3>التحدي التفاعلي (سحب وإفلات)</h3>
+            <p>اسحب كل بطاقة من هنا إلى مكانها الصحيح في الذرّة</p>
+            
+            <div class="drag-cards-container">
+                <div class="drag-card" draggable="true" data-particle="proton">
+                    <div class="particle-icon proton"></div>
+                    <span>بروتون</span>
+                </div>
+                <div class="drag-card" draggable="true" data-particle="neutron">
+                    <div class="particle-icon neutron"></div>
+                    <span>نيوترون</span>
+                </div>
+                <div class="drag-card" draggable="true" data-particle="electron">
+                    <div class="particle-icon electron"></div>
+                    <span>إلكترون</span>
+                </div>
+            </div>
+            
+            <div class="challenge-status">
+                <p id="challengeStatus">ابدأ بسحب البطاقات إلى أماكنها الصحيحة في الذرّة</p>
+            </div>
         </div>
     </div>
 

@@ -532,181 +532,60 @@ class WebARAtomApp {
     }
 
     setupChallengeDnD() {
-        // Update the challenge overlay UI
-        const challenge = document.getElementById('challengeOverlay');
-        if (challenge) {
-            challenge.innerHTML = `
-                <h3>التحدي التفاعلي (سحب وإفلات)</h3>
-                <p>اسحب كل بطاقة إلى مكانها الصحيح في الذرّة</p>
-                <div class="challenge-instructions">
-                    <div class="instruction-item">
-                        <div class="color-indicator proton"></div>
-                        <span>البروتونات - في النواة</span>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="color-indicator neutron"></div>
-                        <span>النيوترونات - في النواة</span>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="color-indicator electron"></div>
-                        <span>الإلكترونات - حول النواة</span>
-                    </div>
-                </div>
-                <div class="challenge-status">
-                    <p id="challengeStatus">ابدأ بسحب البطاقات إلى أماكنها الصحيحة</p>
-                </div>
-            `;
-        }
-
-        // Setup 3D interaction handling
-        this.setup3DDragAndDrop();
+        // Setup UI drag and drop to 3D
+        this.setupUIDragAndDrop();
     }
 
-    setup3DDragAndDrop() {
-        // This will be handled by the interaction manager
-        // We'll add touch/mouse events for dragging the 3D cards
-        this.draggingCard = null;
-        this.dragStartPosition = null;
+    setupUIDragAndDrop() {
+        const cards = document.querySelectorAll('#challengeOverlay .drag-card');
+        cards.forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', card.getAttribute('data-particle'));
+                card.classList.add('dragging');
+            });
+            
+            card.addEventListener('dragend', (e) => {
+                card.classList.remove('dragging');
+            });
+        });
         
-        // Add event listeners for touch/mouse interactions
-        this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
-        this.renderer.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
-        this.renderer.domElement.addEventListener('mouseup', this.onMouseUp.bind(this));
+        // Add drop zone to the entire renderer canvas
+        this.renderer.domElement.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
         
-        this.renderer.domElement.addEventListener('touchstart', this.onTouchStart.bind(this));
-        this.renderer.domElement.addEventListener('touchmove', this.onTouchMove.bind(this));
-        this.renderer.domElement.addEventListener('touchend', this.onTouchEnd.bind(this));
+        this.renderer.domElement.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const particleType = e.dataTransfer.getData('text/plain');
+            this.handleUIDrop(particleType, e);
+        });
     }
 
-    onMouseDown(event) {
+    handleUIDrop(particleType, event) {
         if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode) return;
         
+        // Convert screen coordinates to normalized device coordinates
         const mouse = new THREE.Vector2();
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         
-        this.startDrag(mouse);
+        // Handle the drop in the atom model
+        const success = this.atom.handleUIDrop(particleType, mouse, this.camera);
+        this.updateChallengeStatus(success, particleType);
     }
 
-    onMouseMove(event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
-        
-        const mouse = new THREE.Vector2();
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        
-        this.updateDrag(mouse);
-    }
-
-    onMouseUp(event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
-        
-        const mouse = new THREE.Vector2();
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        
-        this.endDrag(mouse);
-    }
-
-    onTouchStart(event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode) return;
-        
-        event.preventDefault();
-        const touch = event.touches[0];
-        const mouse = new THREE.Vector2();
-        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        this.startDrag(mouse);
-    }
-
-    onTouchMove(event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
-        
-        event.preventDefault();
-        const touch = event.touches[0];
-        const mouse = new THREE.Vector2();
-        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        this.updateDrag(mouse);
-    }
-
-    onTouchEnd(event) {
-        if (this.sceneIndex !== 4 || !this.atom || !this.atom.challengeMode || !this.draggingCard) return;
-        
-        event.preventDefault();
-        const touch = event.changedTouches[0];
-        const mouse = new THREE.Vector2();
-        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        this.endDrag(mouse);
-    }
-
-    startDrag(mouse) {
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, this.camera);
-        
-        // Check intersection with drag cards
-        const intersects = raycaster.intersectObjects(this.atom.dragCards);
-        if (intersects.length > 0) {
-            const card = intersects[0].object;
-            if (!card.userData.dragged) {
-                this.draggingCard = card.userData.type;
-                this.dragStartPosition = mouse.clone();
-                
-                // Convert screen position to world position
-                const worldPosition = new THREE.Vector3();
-                worldPosition.setFromMatrixPosition(this.atom.getGroup().matrixWorld);
-                this.atom.handleDragStart(this.draggingCard, worldPosition);
-            }
-        }
-    }
-
-    updateDrag(mouse) {
-        if (!this.draggingCard) return;
-        
-        // Convert screen position to world position
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, this.camera);
-        
-        // Create a plane at the atom's position for dragging
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const intersection = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, intersection);
-        
-        this.atom.handleDragMove(this.draggingCard, intersection);
-    }
-
-    endDrag(mouse) {
-        if (!this.draggingCard) return;
-        
-        // Convert screen position to world position
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, this.camera);
-        
-        // Create a plane at the atom's position for dropping
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const intersection = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, intersection);
-        
-        const success = this.atom.handleDrop(this.draggingCard, intersection);
-        this.updateChallengeStatus(success);
-        
-        this.draggingCard = null;
-        this.dragStartPosition = null;
-    }
-
-    updateChallengeStatus(success) {
+    updateChallengeStatus(success, particleType) {
         const statusElement = document.getElementById('challengeStatus');
         if (!statusElement) return;
         
+        const particleName = particleType === 'proton' ? 'البروتون' : 
+                           particleType === 'neutron' ? 'النيوترون' : 'الإلكترون';
+        
         if (success) {
-            statusElement.textContent = 'ممتاز! تم وضع البطاقة في المكان الصحيح';
+            statusElement.textContent = `ممتاز! تم وضع ${particleName} في المكان الصحيح`;
             statusElement.style.color = '#00aa00';
         } else {
-            statusElement.textContent = 'فكر جيدًا... المحاولة مرة أخرى';
+            statusElement.textContent = `فكر جيدًا... ${particleName} في المكان الخطأ. المحاولة مرة أخرى`;
             statusElement.style.color = '#aa0000';
         }
         

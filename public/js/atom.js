@@ -570,14 +570,12 @@ export class AtomModel {
     enableChallengeMode() {
         this.challengeMode = true;
         this.createDropZones();
-        this.createDragCards();
         this.hideParticleLabels();
     }
 
     disableChallengeMode() {
         this.challengeMode = false;
         this.removeDropZones();
-        this.removeDragCards();
         this.showParticleLabels();
     }
 
@@ -613,49 +611,6 @@ export class AtomModel {
         this.dropZones.push(electronDropZone);
     }
 
-    createDragCards() {
-        // Create floating cards that can be dragged
-        const cardGeometry = new THREE.PlaneGeometry(0.12, 0.08);
-        
-        // Proton card
-        const protonCardMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff3333,
-            transparent: true,
-            opacity: 0.9,
-            side: THREE.DoubleSide
-        });
-        const protonCard = new THREE.Mesh(cardGeometry, protonCardMaterial);
-        protonCard.position.set(-0.3, 0.2, 0);
-        protonCard.userData = { type: 'proton', dragged: false, originalPosition: protonCard.position.clone() };
-        this.group.add(protonCard);
-        this.dragCards.push(protonCard);
-
-        // Neutron card
-        const neutronCardMaterial = new THREE.MeshBasicMaterial({
-            color: 0x6699ff,
-            transparent: true,
-            opacity: 0.9,
-            side: THREE.DoubleSide
-        });
-        const neutronCard = new THREE.Mesh(cardGeometry, neutronCardMaterial);
-        neutronCard.position.set(-0.3, 0.1, 0);
-        neutronCard.userData = { type: 'neutron', dragged: false, originalPosition: neutronCard.position.clone() };
-        this.group.add(neutronCard);
-        this.dragCards.push(neutronCard);
-
-        // Electron card
-        const electronCardMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff66,
-            transparent: true,
-            opacity: 0.9,
-            side: THREE.DoubleSide
-        });
-        const electronCard = new THREE.Mesh(cardGeometry, electronCardMaterial);
-        electronCard.position.set(-0.3, 0, 0);
-        electronCard.userData = { type: 'electron', dragged: false, originalPosition: electronCard.position.clone() };
-        this.group.add(electronCard);
-        this.dragCards.push(electronCard);
-    }
 
     hideParticleLabels() {
         // Make actual particles more transparent during challenge
@@ -694,58 +649,25 @@ export class AtomModel {
         this.dropZones = [];
     }
 
-    removeDragCards() {
-        this.dragCards.forEach(card => {
-            this.group.remove(card);
-            if (card.geometry) card.geometry.dispose();
-            if (card.material) card.material.dispose();
-        });
-        this.dragCards = [];
-    }
-
-    // Handle drag and drop interactions
-    handleDragStart(cardType, position) {
-        const card = this.dragCards.find(c => c.userData.type === cardType);
-        if (card && !card.userData.dragged) {
-            card.userData.dragged = true;
-            card.position.copy(position);
-            card.material.opacity = 0.7;
-            return card;
-        }
-        return null;
-    }
-
-    handleDragMove(cardType, position) {
-        const card = this.dragCards.find(c => c.userData.type === cardType);
-        if (card && card.userData.dragged) {
-            card.position.copy(position);
-        }
-    }
-
-    handleDrop(cardType, position) {
-        const card = this.dragCards.find(c => c.userData.type === cardType);
-        if (!card || !card.userData.dragged) return false;
-
-        // Check if dropped on correct drop zone
-        const correctDropZone = this.dropZones.find(z => z.userData.type === cardType);
-        if (correctDropZone) {
-            const distance = card.position.distanceTo(correctDropZone.position);
-            if (distance < 0.1) {
+    // Handle drop from UI to 3D drop zones
+    handleUIDrop(cardType, screenPosition, camera) {
+        // Convert screen position to world position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(screenPosition, camera);
+        
+        // Check intersection with drop zones
+        const intersects = raycaster.intersectObjects(this.dropZones);
+        if (intersects.length > 0) {
+            const dropZone = intersects[0].object;
+            if (dropZone.userData.type === cardType) {
                 // Correct placement
-                card.position.copy(correctDropZone.position);
-                card.material.color.setHex(0x00ff00); // Green for correct
-                correctDropZone.userData.correct = true;
-                correctDropZone.material.opacity = 0.8;
-                correctDropZone.material.color.setHex(0x00ff00);
+                dropZone.userData.correct = true;
+                dropZone.material.opacity = 0.8;
+                dropZone.material.color.setHex(0x00ff00); // Green for correct
                 return true;
             }
         }
-
-        // Incorrect placement - return to original position
-        card.position.copy(card.userData.originalPosition);
-        card.material.opacity = 0.9;
-        card.material.color.setHex(cardType === 'proton' ? 0xff3333 : cardType === 'neutron' ? 0x6699ff : 0x00ff66);
-        card.userData.dragged = false;
+        
         return false;
     }
 
@@ -756,7 +678,6 @@ export class AtomModel {
     dispose() {
         // Clean up geometries and materials
         this.removeDropZones();
-        this.removeDragCards();
         
         this.group.traverse((child) => {
             if (child.geometry) {
