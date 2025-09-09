@@ -467,6 +467,8 @@ class WebARAtomApp {
         if (this.atom && this.atom.restoreOpacity) this.atom.restoreOpacity();
         if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
         if (this.atom && this.atom.stopNeutronAnimation) this.atom.stopNeutronAnimation();
+        // Remove atom interaction when leaving Scene 1
+        this.removeAtomInteraction();
 
         switch (clamped) {
             case 0: // Scene 1: ظهور الذرة
@@ -477,6 +479,8 @@ class WebARAtomApp {
                     <p>لنتعرف عليها!</p>
                     <p><em>اضغط على أي جزء من الذرّة لمعرفة المزيد عنه</em></p>
                 `;
+                // Enable interactive atom clicking for Scene 1
+                this.setupAtomInteraction();
                 break;
             case 1: // Scene 2: البروتون
                 panel.classList.remove('hidden');
@@ -520,6 +524,193 @@ class WebARAtomApp {
                     <p>الذرّة تتكون من: بروتونات موجبة ونيوترونات متعادلة (يشكلان النواة)، وإلكترونات سالبة تدور حول النواة في مستويات الطاقة مكوّنة السحابة الإلكترونية.</p>
                 `;
                 break;
+        }
+    }
+
+    setupAtomInteraction() {
+        if (!this.atom || this.sceneIndex !== 0) return;
+
+        // Remove any existing click listeners
+        this.removeAtomInteraction();
+
+        // Add click listener to the renderer canvas
+        this.atomClickHandler = (event) => this.handleAtomClick(event);
+        this.renderer.domElement.addEventListener('click', this.atomClickHandler);
+    }
+
+    removeAtomInteraction() {
+        if (this.atomClickHandler) {
+            this.renderer.domElement.removeEventListener('click', this.atomClickHandler);
+            this.atomClickHandler = null;
+        }
+    }
+
+    handleAtomClick(event) {
+        if (this.sceneIndex !== 0 || !this.atom) return;
+
+        // Convert screen coordinates to normalized device coordinates
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Create raycaster
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+
+        // Get all atom objects for intersection
+        const atomObjects = [];
+        this.atom.getGroup().traverse((child) => {
+            if (child.isMesh && child.visible) {
+                atomObjects.push(child);
+            }
+        });
+
+        // Check for intersections
+        const intersects = raycaster.intersectObjects(atomObjects);
+
+        if (intersects.length > 0) {
+            const clickedObject = intersects[0].object;
+            this.handleAtomPartClick(clickedObject);
+        } else {
+            // Clicked on empty space
+            this.handleEmptySpaceClick();
+        }
+    }
+
+    handleAtomPartClick(clickedObject) {
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
+
+        // Determine what part was clicked
+        const userData = clickedObject.userData;
+        
+        if (userData.part === 'nucleus' || userData.kind === 'proton' || userData.kind === 'neutron') {
+            // Clicked on nucleus (protons or neutrons)
+            panel.innerHTML = `
+                <h3>النواة</h3>
+                <p>هنا تقع البروتونات والنيوترونات.</p>
+                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
+            `;
+            
+            // Add nucleus vibration effect
+            this.animateNucleusVibration();
+            
+        } else if (userData.part === 'electron' || userData.part === 'orbit') {
+            // Clicked on electron or orbit
+            panel.innerHTML = `
+                <h3>الإلكترونات</h3>
+                <p>الإلكترونات تدور حول النواة.</p>
+                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة وشحنتها سالبة.</p>
+            `;
+            
+            // Add electron movement effect
+            this.animateElectronMovement();
+        }
+    }
+
+    handleEmptySpaceClick() {
+        // Play beep sound and show error message
+        this.playBeepSound();
+        
+        const panel = document.getElementById('eduPanel');
+        if (panel) {
+            const originalContent = panel.innerHTML;
+            
+            // Show error message
+            panel.innerHTML = `
+                <h3 style="color: #ff6b6b;">⚠️ تنبيه</h3>
+                <p>اضغط على أحد أجزاء الذرّة للتعرف عليه.</p>
+            `;
+            
+            // Restore original content after 2 seconds
+            setTimeout(() => {
+                panel.innerHTML = `
+                    <h3>معلومات تعليمية</h3>
+                    <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                    <p>لنتعرف عليها!</p>
+                    <p><em>اضغط على أي جزء من الذرّة لمعرفة المزيد عنه</em></p>
+                `;
+            }, 2000);
+        }
+    }
+
+    animateNucleusVibration() {
+        if (!this.atom || !this.atom.nucleusGroup) return;
+        
+        const nucleus = this.atom.nucleusGroup;
+        const originalPosition = nucleus.position.clone();
+        
+        // Create vibration animation
+        let vibrationCount = 0;
+        const maxVibrations = 6;
+        const vibrationIntensity = 0.02;
+        
+        const vibrate = () => {
+            if (vibrationCount < maxVibrations) {
+                const offsetX = (Math.random() - 0.5) * vibrationIntensity;
+                const offsetY = (Math.random() - 0.5) * vibrationIntensity;
+                const offsetZ = (Math.random() - 0.5) * vibrationIntensity;
+                
+                nucleus.position.set(
+                    originalPosition.x + offsetX,
+                    originalPosition.y + offsetY,
+                    originalPosition.z + offsetZ
+                );
+                
+                vibrationCount++;
+                setTimeout(vibrate, 100);
+            } else {
+                // Return to original position
+                nucleus.position.copy(originalPosition);
+            }
+        };
+        
+        vibrate();
+    }
+
+    animateElectronMovement() {
+        if (!this.atom || !this.atom.electrons) return;
+        
+        // Temporarily increase electron speed
+        this.atom.electrons.forEach(electron => {
+            if (electron.userData) {
+                electron.userData.originalSpeed = electron.userData.speed;
+                electron.userData.speed *= 3; // Triple the speed
+            }
+        });
+        
+        // Restore normal speed after 2 seconds
+        setTimeout(() => {
+            if (this.atom && this.atom.electrons) {
+                this.atom.electrons.forEach(electron => {
+                    if (electron.userData && electron.userData.originalSpeed) {
+                        electron.userData.speed = electron.userData.originalSpeed;
+                    }
+                });
+            }
+        }, 2000);
+    }
+
+    playBeepSound() {
+        // Create a simple beep sound using Web Audio API
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (error) {
+            console.log('Audio not supported');
         }
     }
 
