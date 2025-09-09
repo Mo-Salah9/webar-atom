@@ -389,6 +389,12 @@
             background: #ffebee;
         }
 
+        .drop-slot.hover-highlight {
+            border-color: #2196F3;
+            background: rgba(33, 150, 243, 0.1);
+            transform: scale(1.05);
+        }
+
         .slot-1 {
             top: 40px;
             right: 90px;
@@ -464,6 +470,13 @@
         .answer-card:active {
             cursor: grabbing;
             transform: scale(0.95);
+        }
+
+        .answer-card.selected {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
         }
 
         .answer-card.dragging {
@@ -565,14 +578,14 @@
                     </div>
                     
                     <div class="answer-cards">
-                        <div class="answer-card" draggable="true" data-answer="electron">
-                            <span>الكترونات</span>
+                        <div class="answer-card" data-answer="electron">
+                            <span>إلكترونات</span>
                         </div>
-                        <div class="answer-card" draggable="true" data-answer="proton">
+                        <div class="answer-card" data-answer="proton">
                             <span>بروتونات</span>
                         </div>
-                        <div class="answer-card" draggable="true" data-answer="neutron">
-                            <span>نيترونات</span>
+                        <div class="answer-card" data-answer="neutron">
+                            <span>نيوترونات</span>
                         </div>
                     </div>
                 </div>

@@ -524,67 +524,96 @@ class WebARAtomApp {
     }
 
     setupChallengeDnD() {
-        // Setup pure UI quiz drag and drop
-        this.setupQuizDragAndDrop();
+        // Setup pure UI quiz click selection
+        this.setupQuizClickSelect();
     }
 
-    setupQuizDragAndDrop() {
+    setupQuizClickSelect() {
         const answerCards = document.querySelectorAll('#challengeOverlay .answer-card');
         const dropSlots = document.querySelectorAll('#challengeOverlay .drop-slot');
         
-        // Setup answer cards
+        this.selectedAnswer = null;
+        this.selectedCard = null;
+        
+        // Setup answer cards - click to select
         answerCards.forEach(card => {
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', card.getAttribute('data-answer'));
-                card.classList.add('dragging');
-            });
+            // Remove draggable attribute
+            card.removeAttribute('draggable');
             
-            card.addEventListener('dragend', (e) => {
-                card.classList.remove('dragging');
+            card.addEventListener('click', (e) => {
+                // Clear previous selection
+                answerCards.forEach(c => c.classList.remove('selected'));
+                
+                // Select this card
+                card.classList.add('selected');
+                this.selectedAnswer = card.getAttribute('data-answer');
+                this.selectedCard = card;
+                
+                // Update status
+                const statusElement = document.getElementById('quizStatus');
+                if (statusElement) {
+                    const particleName = this.getParticleName(this.selectedAnswer);
+                    statusElement.textContent = `تم اختيار ${particleName} - الآن اضغط على المكان المناسب`;
+                    statusElement.style.color = '#0066cc';
+                }
             });
         });
         
-        // Setup drop slots
+        // Setup drop slots - click to place selected answer
         dropSlots.forEach(slot => {
-            slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                slot.classList.add('drag-over');
-            });
-            
-            slot.addEventListener('dragleave', (e) => {
-                slot.classList.remove('drag-over');
-            });
-            
-            slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.classList.remove('drag-over');
+            slot.addEventListener('click', (e) => {
+                if (!this.selectedAnswer || !this.selectedCard) {
+                    // No answer selected
+                    const statusElement = document.getElementById('quizStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'اختر إجابة أولاً ثم اضغط على المكان المناسب';
+                        statusElement.style.color = '#aa0000';
+                    }
+                    return;
+                }
                 
-                const answerType = e.dataTransfer.getData('text/plain');
                 const targetType = slot.getAttribute('data-target');
-                
-                this.handleQuizDrop(answerType, targetType, slot);
+                this.handleQuizClick(this.selectedAnswer, targetType, slot, this.selectedCard);
+            });
+            
+            // Add hover effect for slots
+            slot.addEventListener('mouseenter', (e) => {
+                if (this.selectedAnswer) {
+                    slot.classList.add('hover-highlight');
+                }
+            });
+            
+            slot.addEventListener('mouseleave', (e) => {
+                slot.classList.remove('hover-highlight');
             });
         });
     }
 
-    handleQuizDrop(answerType, targetType, slot) {
+    handleQuizClick(answerType, targetType, slot, card) {
         if (this.sceneIndex !== 4) return;
         
         const isCorrect = answerType === targetType;
         
+        // Clear selection
+        card.classList.remove('selected');
+        this.selectedAnswer = null;
+        this.selectedCard = null;
+        
         if (isCorrect) {
-            slot.classList.add('correct');
-            slot.classList.remove('incorrect');
-            slot.querySelector('.slot-content').textContent = this.getParticleName(answerType);
-            
-            // Hide the used answer card
-            const usedCard = document.querySelector(`[data-answer="${answerType}"]`);
-            if (usedCard) {
-                usedCard.style.display = 'none';
-            }
-            
-            this.updateQuizStatus(true, answerType);
+            // Correct answer - animate card to slot and make slot green
+            this.animateCardToSlot(card, slot, () => {
+                slot.classList.add('correct');
+                slot.classList.remove('incorrect');
+                slot.querySelector('.slot-content').textContent = this.getParticleName(answerType);
+                
+                // Hide the answer card
+                card.style.display = 'none';
+                
+                this.updateQuizStatus(true, answerType);
+                this.checkQuizCompletion();
+            });
         } else {
+            // Wrong answer - show feedback and return card
             slot.classList.add('incorrect');
             slot.classList.remove('correct');
             this.updateQuizStatus(false, answerType);
@@ -595,9 +624,44 @@ class WebARAtomApp {
                 slot.querySelector('.slot-content').textContent = '';
             }, 2000);
         }
+    }
+
+    animateCardToSlot(card, slot, callback) {
+        // Get positions
+        const cardRect = card.getBoundingClientRect();
+        const slotRect = slot.getBoundingClientRect();
         
-        // Check if quiz is complete
-        this.checkQuizCompletion();
+        // Create a clone for animation
+        const clone = card.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.top = cardRect.top + 'px';
+        clone.style.left = cardRect.left + 'px';
+        clone.style.width = cardRect.width + 'px';
+        clone.style.height = cardRect.height + 'px';
+        clone.style.zIndex = '1000';
+        clone.style.transition = 'all 0.5s ease';
+        clone.style.pointerEvents = 'none';
+        
+        document.body.appendChild(clone);
+        
+        // Animate to slot position
+        setTimeout(() => {
+            clone.style.top = slotRect.top + 'px';
+            clone.style.left = slotRect.left + 'px';
+            clone.style.transform = 'scale(0.8)';
+            clone.style.opacity = '0.8';
+        }, 10);
+        
+        // Clean up and callback
+        setTimeout(() => {
+            document.body.removeChild(clone);
+            if (callback) callback();
+        }, 500);
+    }
+
+    handleQuizDrop(answerType, targetType, slot) {
+        // Keep old method for compatibility
+        this.handleQuizClick(answerType, targetType, slot, document.querySelector(`[data-answer="${answerType}"]`));
     }
 
     getParticleName(type) {
