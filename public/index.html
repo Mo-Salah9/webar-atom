@@ -348,118 +348,10 @@
             height: 200px;
         }
 
-        .atom-visual {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .nucleus {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, #ff6b6b, #ff5252);
-            border-radius: 50%;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .proton {
-            width: 12px;
-            height: 12px;
-            background: #ff3333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 8px;
-            font-weight: bold;
-            margin: 1px;
-        }
-
-        .neutron {
-            width: 12px;
-            height: 12px;
-            background: #6699ff;
-            border-radius: 50%;
-            margin: 1px;
-        }
-
-        .electron-orbit {
-            position: absolute;
-            border: 2px solid #ddd;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .orbit-1 {
-            width: 120px;
-            height: 120px;
-        }
-
-        .orbit-2 {
-            width: 160px;
-            height: 160px;
-        }
-
-        .electron {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: #00ff66;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .orbit-1 .electron:nth-child(1) {
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .orbit-1 .electron:nth-child(2) {
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .orbit-2 .electron:nth-child(1) {
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .orbit-2 .electron:nth-child(2) {
-            right: -8px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .orbit-2 .electron:nth-child(3) {
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .orbit-2 .electron:nth-child(4) {
-            left: -8px;
-            top: 50%;
-            transform: translateY(-50%);
+        .atom-image {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
         }
 
         .drop-slot {
@@ -625,27 +517,8 @@
                 <div class="quiz-content">
                     <div class="atom-diagram-container">
                         <div class="atom-diagram">
-                            <!-- 2D Atom Diagram -->
-                            <div class="atom-visual">
-                                <div class="nucleus">
-                                    <div class="proton">+</div>
-                                    <div class="proton">+</div>
-                                    <div class="proton">+</div>
-                                    <div class="neutron"></div>
-                                    <div class="neutron"></div>
-                                    <div class="neutron"></div>
-                                </div>
-                                <div class="electron-orbit orbit-1">
-                                    <div class="electron">-</div>
-                                    <div class="electron">-</div>
-                                </div>
-                                <div class="electron-orbit orbit-2">
-                                    <div class="electron">-</div>
-                                    <div class="electron">-</div>
-                                    <div class="electron">-</div>
-                                    <div class="electron">-</div>
-                                </div>
-                            </div>
+                            <!-- Atom Diagram Image -->
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ3aGl0ZSIvPgo8IS0tIE51Y2xldXMgLS0+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iMzAiIGZpbGw9InVybCgjbnVjbGV1c0dyYWRpZW50KSIvPgo8IS0tIFByb3RvbnMgLS0+CjxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9IjYiIGZpbGw9IiNmZjMzMzMiLz4KPHN2ZyB4PSI4NyIgeT0iODciIHdpZHRoPSI2IiBoZWlnaHQ9IjYiPgo8dGV4dCB4PSIzIiB5PSI0LjUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KzwvdGV4dD4KPC9zdmc+CjxjaXJjbGUgY3g9IjExMCIgY3k9IjkwIiByPSI2IiBmaWxsPSIjZmYzMzMzIi8+CjxzdmcgeD0iMTA3IiB5PSI4NyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+Cjx0ZXh0IHg9IjMiIHk9IjQuNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4rPC90ZXh0Pgo8L3N2Zz4KPGNpcmNsZSBjeD0iMTAwIiBjeT0iNzAiIHI9IjYiIGZpbGw9IiNmZjMzMzMiLz4KPHN2ZyB4PSI5NyIgeT0iNjciIHdpZHRoPSI2IiBoZWlnaHQ9IjYiPgo8dGV4dCB4PSIzIiB5PSI0LjUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KzwvdGV4dD4KPC9zdmc+CjwhLS0gTmV1dHJvbnMgLS0+CjxjaXJjbGUgY3g9IjkwIiBjeT0iMTEwIiByPSI2IiBmaWxsPSIjNjY5OWZmIi8+CjxjaXJjbGUgY3g9IjExMCIgY3k9IjExMCIgcj0iNiIgZmlsbD0iIzY2OTlmZiIvPgo8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMzAiIHI9IjYiIGZpbGw9IiM2Njk5ZmYiLz4KPGNpcmNsZSBjeD0iODAiIGN5PSIxMDAiIHI9IjYiIGZpbGw9IiM2Njk5ZmYiLz4KPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTAwIiByPSI2IiBmaWxsPSIjNjY5OWZmIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSI2IiBmaWxsPSIjNjY5OWZmIi8+CjwhLS0gRWxlY3Ryb24gT3JiaXQgMSAtLT4KPGVsbGlwc2UgY3g9IjEwMCIgY3k9IjEwMCIgcng9IjYwIiByeT0iNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjwhLS0gRWxlY3Ryb25zIGluIE9yYml0IDEgLS0+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjYwIiByPSI4IiBmaWxsPSIjMDBmZjY2Ii8+CjxzdmcgeD0iOTciIHk9IjU3IiB3aWR0aD0iNiIgaGVpZ2h0PSI2Ij4KPHRleHQgeD0iMyIgeT0iNC41IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPi08L3RleHQ+Cjwvc3ZnPgo8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxNDAiIHI9IjgiIGZpbGw9IiMwMGZmNjYiLz4KPHN2ZyB4PSI5NyIgeT0iMTM3IiB3aWR0aD0iNiIgaGVpZ2h0PSI2Ij4KPHRleHQgeD0iMyIgeT0iNC41IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPi08L3RleHQ+Cjwvc3ZnPgo8IS0tIEVsZWN0cm9uIE9yYml0IDIgLS0+CjxlbGxpcHNlIGN4PSIxMDAiIGN5PSIxMDAiIHJ4PSI4MCIgcnk9IjUwIiBmaWxsPSJub25lIiBzdHJva2U9IiNkZGQiIHN0cm9rZS13aWR0aD0iMiIgdHJhbnNmb3JtPSJyb3RhdGUoMzBkZWcpIi8+CjwhLS0gRWxlY3Ryb25zIGluIE9yYml0IDIgLS0+CjxjaXJjbGUgY3g9IjE0MCIgY3k9IjcwIiByPSI4IiBmaWxsPSIjMDBmZjY2Ii8+CjxzdmcgeD0iMTM3IiB5PSI2NyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+Cjx0ZXh0IHg9IjMiIHk9IjQuNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tPC90ZXh0Pgo8L3N2Zz4KPGNpcmNsZSBjeD0iNjAiIGN5PSIxMzAiIHI9IjgiIGZpbGw9IiMwMGZmNjYiLz4KPHN2ZyB4PSI1NyIgeT0iMTI3IiB3aWR0aD0iNiIgaGVpZ2h0PSI2Ij4KPHRleHQgeD0iMyIgeT0iNC41IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPi08L3RleHQ+Cjwvc3ZnPgo8Y2lyY2xlIGN4PSIxNDAiIGN5PSIxMzAiIHI9IjgiIGZpbGw9IiMwMGZmNjYiLz4KPHN2ZyB4PSIxMzciIHk9IjEyNyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+Cjx0ZXh0IHg9IjMiIHk9IjQuNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tPC90ZXh0Pgo8L3N2Zz4KPGNpcmNsZSBjeD0iNjAiIGN5PSI3MCIgcj0iOCIgZmlsbD0iIzAwZmY2NiIvPgo8c3ZnIHg9IjU3IiB5PSI2NyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+Cjx0ZXh0IHg9IjMiIHk9IjQuNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tPC90ZXh0Pgo8L3N2Zz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0ibnVjbGV1c0dyYWRpZW50IiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZjZiNmIiLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZmY1MjUyIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="Atom Diagram" class="atom-image">
                         </div>
                         
                         <!-- Drop slots around the atom -->
