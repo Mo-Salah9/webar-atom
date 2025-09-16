@@ -1,33 +1,14 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
-import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/ARButton.js';
-import { AtomModel } from './atom.js';
-import { InteractionManager } from './interactions.js';
+// Model-viewer based WebAR Atom App with iOS Safari support
 
 class WebARAtomApp {
     constructor() {
-        // Core Three.js components
-        this.scene = null;
-        this.camera = null;
-        this.renderer = null;
-        
-        // AR components
-        this.reticle = null;
-        this.hitTestSource = null;
-        this.hitTestSourceRequested = false;
-        this.localSpace = null;
-        
         // App components
-        this.atom = null;
-        this.interactionManager = null;
+        this.modelViewer = null;
         this.sceneIndex = 0; // 0..5 (6 scenes)
         
         // State
         this.isARActive = false;
-        this.atomPlaced = false;
-        
-        // Performance
-        this.clock = new THREE.Clock();
-        this.frameCount = 0;
+        this.modelLoaded = false;
         
         this.init();
     }

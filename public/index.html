@@ -505,6 +505,103 @@
             color: #333;
         }
 
+        /* Model Viewer Styles */
+        model-viewer {
+            background: transparent;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .update-bar {
+            height: 100%;
+            background: linear-gradient(45deg, #4ECDC4, #f31e1e);
+            border-radius: 2px;
+            transform: translateX(-100%);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Hide default model-viewer AR button */
+        model-viewer > button[slot="ar-button"] {
+            display: none;
+        }
+
+        /* Hotspot Styles */
+        .hotspot {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #4ECDC4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .hotspot:hover {
+            background: #4ECDC4;
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .annotation {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: normal;
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .hotspot:hover .annotation {
+            opacity: 1;
+        }
+
+        /* iOS Safari specific optimizations */
+        @supports (-webkit-touch-callout: none) {
+            model-viewer {
+                /* iOS Safari specific styles */
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .ar-button {
+                /* Ensure AR button is properly styled on iOS */
+                -webkit-appearance: none;
+                appearance: none;
+                border-radius: 25px;
+            }
+        }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -519,7 +616,51 @@
     </style>
 </head>
 <body>
-    <div id="container"></div>
+    <div id="container">
+        <!-- Model Viewer Component -->
+        <model-viewer 
+            id="atomViewer"
+            src="https://modelviewer.dev/shared-assets/models/reflectiveSphere.gltf"
+            ios-src="https://modelviewer.dev/shared-assets/models/Astronaut.usdz"
+            alt="3D Atom Model - Interactive Chemistry Visualization"
+            camera-controls 
+            touch-action="pan-y"
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            camera-orbit="0deg 75deg 2m"
+            max-camera-orbit="auto 180deg auto"
+            min-camera-orbit="auto 0deg 1m"
+            max-field-of-view="45deg"
+            shadow-intensity="1"
+            environment-image="neutral"
+            auto-rotate
+            auto-rotate-delay="3000"
+            interaction-prompt="auto"
+            quick-look-browsers="safari chrome"
+            loading="eager"
+            reveal="auto"
+            style="width: 100%; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            
+            <!-- AR Button -->
+            <button slot="ar-button" class="ar-button" id="arButton">
+                🥽 View in AR
+            </button>
+            
+            <!-- Loading indicator -->
+            <div slot="progress-bar" class="progress-bar">
+                <div class="update-bar"></div>
+            </div>
+
+            <!-- Hotspots for educational content -->
+            <button class="hotspot" slot="hotspot-nucleus" data-position="0 0 0" data-normal="0 1 0">
+                <div class="annotation">النواة</div>
+            </button>
+            <button class="hotspot" slot="hotspot-electron" data-position="0.3 0 0" data-normal="1 0 0">
+                <div class="annotation">الإلكترون</div>
+            </button>
+        </model-viewer>
+    </div>
     
     <div class="ui-overlay">
         <div class="instructions" id="instructions">
@@ -597,7 +738,9 @@
         </div>
     </div>
 
+    <!-- Model Viewer for AR support -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <script src="js/webxr-polyfill.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app-modelviewer.js"></script>
 </body>
 </html>
