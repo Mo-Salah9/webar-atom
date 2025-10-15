@@ -2,7 +2,6 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.m
 import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/VRButton.js';
 import { AtomModel } from './atom.js';
 import { InteractionManager } from './interactions.js';
-import { UI3D } from './ui3d.js';
 
 class WebVRAtomApp {
     constructor() {
@@ -13,7 +12,6 @@ class WebVRAtomApp {
         
         // VR components
         this.vrCube = null;
-        this.ui3d = null;
         
         // App components
         this.atom = null;
@@ -38,10 +36,11 @@ class WebVRAtomApp {
             this.createRenderer();
             this.createVRCube();
             this.createLighting();
-            this.create3DUI();
             this.setupVRButton();
             this.setupInteractions();
             this.setupEventListeners();
+            this.setupEducationUI();
+            this.setupSceneControls();
             this.placeAtom(); // Place atom immediately in VR
             
             this.animate();
@@ -109,21 +108,6 @@ class WebVRAtomApp {
         const particleSystem = new THREE.Points(particles, particleMaterial);
         this.scene.add(particleSystem);
         this.particleSystem = particleSystem;
-    }
-    
-    create3DUI() {
-        // Create 3D UI system
-        this.ui3d = new UI3D(this.scene, this.camera, this.renderer);
-        
-        // Set up scene change callback
-        this.ui3d.setSceneChangeCallback((sceneIndex) => {
-            this.gotoScene(sceneIndex);
-        });
-        
-        // Make sure UI starts visible for testing
-        this.ui3d.show();
-        
-        console.log('3D UI system created', this.ui3d);
     }
 
     createCamera() {
@@ -196,8 +180,11 @@ class WebVRAtomApp {
             existingButton.remove();
         }
 
-        // Create new VR button with Three.js VRButton (no DOM overlay needed)
-        const vrButton = VRButton.createButton(this.renderer);
+        // Create new VR button with Three.js VRButton
+        const vrButton = VRButton.createButton(this.renderer, {
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: { root: document.querySelector('.ui-overlay') }
+        });
 
         // Style the button
         vrButton.id = 'vrButton';
@@ -212,25 +199,12 @@ class WebVRAtomApp {
             console.log('🚀 VR session started');
             this.isVRActive = true;
             this.hideInstructions();
-            // Hide VR button in VR
-            vrButton.style.display = 'none';
-            // Show 3D UI elements in VR - make sure they're visible
-            if (this.ui3d) {
-                this.ui3d.show();
-                console.log('3D UI should now be visible', this.ui3d.uiGroup.visible);
-            }
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
             console.log('🛑 VR session ended');
             this.isVRActive = false;
             this.showInstructions();
-            // Show VR button again
-            vrButton.style.display = '';
-            // Hide 3D UI elements
-            if (this.ui3d) {
-                this.ui3d.hide();
-            }
         });
     }
 
@@ -242,17 +216,9 @@ class WebVRAtomApp {
         );
 
         // Setup controller select events for VR interactions
-        const controller0 = this.renderer.xr.getController(0);
-        const controller1 = this.renderer.xr.getController(1);
-        
-        controller0.addEventListener('select', (event) => this.onVRSelect(event));
-        controller1.addEventListener('select', (event) => this.onVRSelect(event));
-        
-        this.scene.add(controller0);
-        this.scene.add(controller1);
-        
-        // Store controllers for raycasting
-        this.controllers = [controller0, controller1];
+        const controllers = this.renderer.xr.getController(0);
+        controllers.addEventListener('select', () => this.onVRSelect());
+        this.scene.add(controllers);
 
         // Listen for part selection to update UI text
         this.interactionManager.on('selectPart', (part) => {
@@ -272,34 +238,9 @@ class WebVRAtomApp {
         if (prevBtn) prevBtn.addEventListener('click', () => this.gotoScene(this.sceneIndex - 1));
     }
 
-    onVRSelect(event) {
-        const controller = event.target;
-        
-        // Check for 3D UI interactions
-        if (this.ui3d && this.isVRActive) {
-            const intersections = this.getControllerIntersections(controller);
-            
-            for (const intersection of intersections) {
-                // Check if it's a UI element
-                if (this.ui3d.handleControllerInteraction(intersection.object)) {
-                    console.log('3D UI interaction detected');
-                    return; // UI interaction handled
-                }
-            }
-        }
-        
+    onVRSelect() {
+        // VR interactions handled by InteractionManager
         console.log('VR controller select event');
-    }
-    
-    getControllerIntersections(controller) {
-        const raycaster = new THREE.Raycaster();
-        const tempMatrix = new THREE.Matrix4();
-        
-        tempMatrix.identity().extractRotation(controller.matrixWorld);
-        raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-        
-        return raycaster.intersectObjects(this.scene.children, true);
     }
 
     placeAtom() {
@@ -308,12 +249,10 @@ class WebVRAtomApp {
         // Create atom model
         this.atom = new AtomModel();
         
-        // Position atom to the side so it doesn't block UI
+        // Position atom at center of VR cube
         const atomGroup = this.atom.getGroup();
-        atomGroup.position.set(-1.5, 0, -2); // Left side, behind UI
-        atomGroup.scale.setScalar(0.8); // Slightly smaller
-        
-        console.log('Atom positioned at:', atomGroup.position);
+        atomGroup.position.set(0, 0, -2); // Center in front of user
+        atomGroup.scale.setScalar(1.0); // Good size for VR
         
         this.scene.add(atomGroup);
         
@@ -323,25 +262,22 @@ class WebVRAtomApp {
         // Update state
         this.atomPlaced = true;
         
-        // Update 3D UI with intro content
-        if (this.ui3d) {
-            this.ui3d.updateEducationalContent(
-                "مرحباً بك في عالم الذرة!", 
-                "هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة: لنتعرف عليها!"
-            );
-            console.log('3D UI updated with intro content');
-            console.log('UI Group children count:', this.ui3d.uiGroup.children.length);
-            console.log('UI Group visible:', this.ui3d.uiGroup.visible);
-            console.log('Scene children count:', this.scene.children.length);
-            
-            // Log positions of UI elements
-            this.ui3d.uiGroup.children.forEach((child, index) => {
-                console.log(`UI Child ${index}:`, child.position, 'visible:', child.visible);
-            });
+        // Show intro panel now that the atom exists
+        const panel = document.getElementById('eduPanel');
+        if (panel) {
+            panel.classList.remove('hidden');
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                <p>لنتعرف عليها!</p>
+            `;
         }
         
         console.log('✅ Atom placed successfully in VR');
-        
+
+        // Show scene footer controls now
+        const footer = document.getElementById('sceneFooter');
+        if (footer) footer.classList.remove('hidden');
         this.gotoScene(0);
     }
 
@@ -419,9 +355,16 @@ class WebVRAtomApp {
         }
     }
 
-    // Old DOM UI methods removed - now using 3D UI system
-
-    // Old DOM education UI setup removed - now using 3D UI system
+    setupEducationUI() {
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
+        panel.classList.add('hidden');
+        panel.innerHTML = `
+            <h3>معلومات تعليمية</h3>
+            <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+            <p>لنتعرف عليها!</p>
+        `;
+    }
 
     handlePartSelection(part) {
         // Only handle part selection in Scene 1
@@ -432,7 +375,8 @@ class WebVRAtomApp {
     }
 
     showPartInfo(part) {
-        if (!this.ui3d) return;
+        const panel = document.getElementById('eduPanel');
+        if (!panel) return;
 
         // Clear any existing highlights first
         if (this.atom && this.atom.clearHighlights) {
@@ -440,10 +384,11 @@ class WebVRAtomApp {
         }
 
         if (part === 'nucleus') {
-            this.ui3d.updateEducationalContent(
-                "النواة",
-                "هنا تقع البروتونات والنيوترونات في مركز الذرّة. البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة."
-            );
+            panel.innerHTML = `
+                <h3>النواة</h3>
+                <p>هنا تقع البروتونات والنيوترونات في مركز الذرّة.</p>
+                <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
+            `;
             // Highlight nucleus (both protons and neutrons)
             if (this.atom && this.atom.highlightKind) {
                 this.atom.highlightKind('proton');
@@ -455,20 +400,22 @@ class WebVRAtomApp {
                 }, 100);
             }
         } else if (part === 'electron' || part === 'orbit') {
-            this.ui3d.updateEducationalContent(
-                "الإلكترونات",
-                "الإلكترونات تدور حول النواة في مستويات طاقة مختلفة. تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة."
-            );
+            panel.innerHTML = `
+                <h3>الإلكترونات</h3>
+                <p>الإلكترونات تدور حول النواة في مستويات طاقة مختلفة.</p>
+                <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة.</p>
+            `;
             // Highlight electrons
             if (this.atom && this.atom.highlightKind) {
                 this.atom.highlightKind('electron');
             }
         } else {
             // Default intro text
-            this.ui3d.updateEducationalContent(
-                "معلومات تعليمية",
-                "هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة: لنتعرف عليها!"
-            );
+            panel.innerHTML = `
+                <h3>معلومات تعليمية</h3>
+                <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                <p>لنتعرف عليها!</p>
+            `;
         }
     }
 
@@ -484,10 +431,10 @@ class WebVRAtomApp {
     }
 
     updateSceneIndicator() {
-        // Update 3D UI scene indicator
-        if (this.ui3d) {
-            this.ui3d.updateSceneIndicator(this.sceneIndex, 6);
-        }
+        const ind = document.getElementById('sceneIndicator');
+        if (!ind) return;
+        const human = this.sceneIndex + 1;
+        ind.textContent = `المشهد ${human} / ٦`;
     }
 
     gotoScene(index) {
@@ -500,6 +447,10 @@ class WebVRAtomApp {
         if (this.interactionManager && this.interactionManager.setCurrentScene) {
             this.interactionManager.setCurrentScene(clamped);
         }
+        const panel = document.getElementById('eduPanel');
+        const challenge = document.getElementById('challengeOverlay');
+        if (challenge) challenge.classList.add('hidden');
+        if (!panel) return;
 
         // Reset any highlights and animations
         if (this.atom && this.atom.clearHighlights) this.atom.clearHighlights();
@@ -507,56 +458,58 @@ class WebVRAtomApp {
         if (this.atom && this.atom.stopProtonAnimation) this.atom.stopProtonAnimation();
         if (this.atom && this.atom.stopNeutronAnimation) this.atom.stopNeutronAnimation();
 
-        // Update 3D UI content based on scene
-        if (this.ui3d) {
-            switch (clamped) {
-                case 0: // Scene 1: ظهور الذرة
-                    this.ui3d.updateEducationalContent(
-                        "معلومات تعليمية",
-                        "هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة: لنتعرف عليها!\n\nاضغط على أي جزء من الذرّة لمعرفة المزيد عنه"
-                    );
-                    break;
-                case 1: // Scene 2: البروتون
-                    this.ui3d.updateEducationalContent(
-                        "البروتونات",
-                        "توجد البروتونات داخل نواة الذرة، وتحمل الشحنة الموجبة، وتحدد نوع العنصر (العدد الذري)."
-                    );
-                    if (this.atom && this.atom.highlightKind) {
-                        this.atom.highlightKind('proton', 1);
-                        this.atom.animateProtons(false); // Disable animation
-                    }
-                    break;
-                case 2: // Scene 3: النيوترون
-                    this.ui3d.updateEducationalContent(
-                        "النيوترونات",
-                        "توجد داخل النواة وهي متعادلة، أي لا تحمل شحنة، وتساهم في استقرار النواة."
-                    );
-                    if (this.atom && this.atom.highlightKind) {
-                        this.atom.highlightKind('neutron', 1);
-                        this.atom.animateNeutrons(false); // Disable animation
-                    }
-                    break;
-                case 3: // Scene 4: الإلكترون
-                    this.ui3d.updateEducationalContent(
-                        "الإلكترونات",
-                        "الإلكترونات تدور حول النواة في مستويات طاقة مختلفة وتشكل سحابة إلكترونية وشحنتها سالبة."
-                    );
-                    if (this.atom && this.atom.highlightKind) this.atom.highlightKind('electron', 1);
-                    break;
-                case 4: // Scene 5: التحدي
-                    this.ui3d.updateEducationalContent(
-                        "التحدي التفاعلي",
-                        "اختبر معرفتك! حدد أجزاء الذرة المختلفة باستخدام وحدة التحكم في الـ VR"
-                    );
-                    this.setupChallengeDnD();
-                    break;
-                case 5: // Scene 6: الملخص
-                    this.ui3d.updateEducationalContent(
-                        "ملخص",
-                        "الذرّة تتكون من: بروتونات موجبة ونيوترونات متعادلة (يشكلان النواة)، وإلكترونات سالبة تدور حول النواة في مستويات الطاقة مكوّنة السحابة الإلكترونية."
-                    );
-                    break;
-            }
+        switch (clamped) {
+            case 0: // Scene 1: ظهور الذرة
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>معلومات تعليمية</h3>
+                    <p>هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة:</p>
+                    <p>لنتعرف عليها!</p>
+                    <p><em>اضغط على أي جزء من الذرّة لمعرفة المزيد عنه</em></p>
+                `;
+                break;
+            case 1: // Scene 2: البروتون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>البروتونات</h3>
+                    <p>توجد البروتونات داخل نواة الذرة، وتحمل الشحنة الموجبة، وتحدد نوع العنصر (العدد الذري).</p>
+                `;
+                if (this.atom && this.atom.highlightKind) {
+                    this.atom.highlightKind('proton', 1);
+                    this.atom.animateProtons(false); // Disable animation
+                }
+                break;
+            case 2: // Scene 3: النيوترون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>النيوترونات</h3>
+                    <p>توجد داخل النواة وهي متعادلة، أي لا تحمل شحنة، وتساهم في استقرار النواة.</p>
+                `;
+                if (this.atom && this.atom.highlightKind) {
+                    this.atom.highlightKind('neutron', 1);
+                    this.atom.animateNeutrons(false); // Disable animation
+                }
+                break;
+            case 3: // Scene 4: الإلكترون
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>الإلكترونات</h3>
+                    <p>الإلكترونات تدور حول النواة في مستويات طاقة مختلفة وتشكل سحابة إلكترونية وشحنتها سالبة.</p>
+                `;
+                if (this.atom && this.atom.highlightKind) this.atom.highlightKind('electron', 1);
+                break;
+            case 4: // Scene 5: التحدي
+                panel.classList.add('hidden');
+                if (challenge) challenge.classList.remove('hidden');
+                this.setupChallengeDnD();
+                break;
+            case 5: // Scene 6: الملخص
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <h3>ملخص</h3>
+                    <p>الذرّة تتكون من: بروتونات موجبة ونيوترونات متعادلة (يشكلان النواة)، وإلكترونات سالبة تدور حول النواة في مستويات الطاقة مكوّنة السحابة الإلكترونية.</p>
+                `;
+                break;
         }
     }
 
@@ -774,14 +727,10 @@ class WebVRAtomApp {
             this.atom.dispose();
         }
         
-        if (this.ui3d) {
-            this.ui3d.dispose();
-        }
-        
         // Remove event listeners
         window.removeEventListener('resize', this.onWindowResize);
         
-        console.log('🧹 WebVR Atom App disposed');
+        console.log('ðŸ§¹ WebAR Atom App disposed');
     }
 }
 
