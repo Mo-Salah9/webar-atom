@@ -182,7 +182,7 @@ class WebVRAtomApp {
 
         // Create new VR button with Three.js VRButton
         const vrButton = VRButton.createButton(this.renderer, {
-            optionalFeatures: ['dom-overlay'],
+            requiredFeatures: ['dom-overlay'],
             domOverlay: { root: document.querySelector('.ui-overlay') }
         });
 
@@ -199,12 +199,18 @@ class WebVRAtomApp {
             console.log('🚀 VR session started');
             this.isVRActive = true;
             this.hideInstructions();
+            // Hide VR button in VR
+            vrButton.style.display = 'none';
+            this.showVRUI(); // Show UI elements in VR
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
             console.log('🛑 VR session ended');
             this.isVRActive = false;
             this.showInstructions();
+            // Show VR button again
+            vrButton.style.display = '';
+            this.hideVRUI(); // Hide VR-specific UI
         });
     }
 
@@ -278,6 +284,12 @@ class WebVRAtomApp {
         // Show scene footer controls now
         const footer = document.getElementById('sceneFooter');
         if (footer) footer.classList.remove('hidden');
+        
+        // If we're in VR, make sure UI is properly shown
+        if (this.isVRActive) {
+            this.showVRUI();
+        }
+        
         this.gotoScene(0);
     }
 
@@ -353,6 +365,75 @@ class WebVRAtomApp {
         if (instructions) {
             instructions.classList.add('hidden');
         }
+    }
+
+    showVRUI() {
+        // Add VR-active class to overlay for special styling
+        const overlay = document.querySelector('.ui-overlay');
+        if (overlay) {
+            overlay.classList.add('vr-active');
+        }
+        
+        // Show educational panel and controls in VR
+        const eduPanel = document.getElementById('eduPanel');
+        const sceneFooter = document.getElementById('sceneFooter');
+        const controls = document.getElementById('controls');
+        
+        if (eduPanel) {
+            eduPanel.classList.remove('hidden');
+            // Make sure it's positioned for VR viewing
+            eduPanel.style.position = 'fixed';
+            eduPanel.style.top = '20px';
+            eduPanel.style.right = '20px';
+            eduPanel.style.zIndex = '1000';
+        }
+        
+        if (sceneFooter && this.atomPlaced) {
+            sceneFooter.classList.remove('hidden');
+            // Position for VR
+            sceneFooter.style.position = 'fixed';
+            sceneFooter.style.bottom = '20px';
+            sceneFooter.style.left = '20px';
+            sceneFooter.style.right = '20px';
+            sceneFooter.style.zIndex = '1000';
+        }
+        
+        if (controls) {
+            controls.classList.remove('hidden');
+            controls.style.position = 'fixed';
+            controls.style.bottom = '100px';
+            controls.style.left = '20px';
+            controls.style.right = '20px';
+            controls.style.zIndex = '1000';
+        }
+        
+        console.log('VR UI elements shown');
+    }
+
+    hideVRUI() {
+        // Remove VR-active class from overlay
+        const overlay = document.querySelector('.ui-overlay');
+        if (overlay) {
+            overlay.classList.remove('vr-active');
+        }
+        
+        // Reset UI positioning when exiting VR
+        const eduPanel = document.getElementById('eduPanel');
+        const sceneFooter = document.getElementById('sceneFooter');
+        const controls = document.getElementById('controls');
+        
+        [eduPanel, sceneFooter, controls].forEach(element => {
+            if (element) {
+                element.style.position = '';
+                element.style.top = '';
+                element.style.bottom = '';
+                element.style.left = '';
+                element.style.right = '';
+                element.style.zIndex = '';
+            }
+        });
+        
+        console.log('VR UI elements reset');
     }
 
     setupEducationUI() {

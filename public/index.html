@@ -28,6 +28,20 @@
             pointer-events: none;
             z-index: 100;
         }
+        
+        /* Enhanced VR UI visibility */
+        .ui-overlay.vr-active {
+            pointer-events: all;
+        }
+        
+        .ui-overlay.vr-active .edu-panel,
+        .ui-overlay.vr-active .scene-footer,
+        .ui-overlay.vr-active .controls {
+            pointer-events: all;
+            background: rgba(0, 0, 0, 0.9) !important;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
 
         .vr-button {
             background: linear-gradient(45deg, #f31e1e, #4ECDC4);
@@ -115,6 +129,17 @@
             background: rgba(255,255,255,0.3);
             transform: scale(1.1);
         }
+        
+        /* VR-specific styling for control buttons */
+        .vr-active .control-btn {
+            background: rgba(78, 205, 196, 0.8) !important;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            color: #000 !important;
+            font-size: 28px;
+            width: 80px;
+            height: 80px;
+            font-weight: bold;
+        }
 
         .hidden {
             display: none !important;
@@ -136,6 +161,15 @@
             line-height: 1.6;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
+        
+        /* VR-specific styling for better visibility */
+        .vr-active .edu-panel {
+            background: rgba(0, 0, 0, 0.9) !important;
+            color: #ffffff !important;
+            border: 2px solid rgba(78, 205, 196, 0.8);
+            font-size: 18px;
+            max-width: 600px;
+        }
 
         .edu-panel h3 {
             margin: 0 0 10px 0;
@@ -154,6 +188,29 @@
             justify-content: space-between;
             gap: 10px;
             pointer-events: all;
+        }
+        
+        /* VR-specific styling for scene controls */
+        .vr-active .scene-footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(78, 205, 196, 0.6);
+        }
+        
+        .vr-active .scene-btn {
+            background: rgba(78, 205, 196, 0.8) !important;
+            color: #000 !important;
+            font-size: 18px;
+            padding: 12px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .vr-active .scene-indicator {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #000 !important;
+            font-size: 16px;
+            padding: 12px 16px;
         }
 
         .scene-btn {
@@ -186,6 +243,29 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             pointer-events: all;
             direction: rtl;
+        }
+        
+        /* VR-specific styling for challenge overlay */
+        .vr-active .challenge-overlay {
+            background: rgba(0, 0, 0, 0.9) !important;
+            color: #ffffff !important;
+            border: 2px solid rgba(78, 205, 196, 0.8);
+            width: min(90vw, 600px);
+            font-size: 18px;
+        }
+        
+        .vr-active .answer-card {
+            background: rgba(78, 205, 196, 0.8) !important;
+            border: 2px solid rgba(255, 255, 255, 0.8) !important;
+            color: #000 !important;
+            font-size: 18px;
+            padding: 15px;
+        }
+        
+        .vr-active .drop-slot {
+            border: 3px dashed rgba(78, 205, 196, 0.8) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            font-size: 16px;
         }
 
         .challenge-instructions {
@@ -526,7 +606,7 @@
             <h3>🚀 WebVR Atom Visualizer</h3>
             <ul>
                 <li>🥽 Put on your VR headset</li>
-                <li>🎯 The atom will appear in front of you</li>
+                <li>🎯 The atom will appear in front of you.</li>
                 <li>🎮 Use VR controllers to interact</li>
                 <li>📏 Squeeze controllers to scale</li>
                 <li>🔄 Grab and move the atom around</li>
