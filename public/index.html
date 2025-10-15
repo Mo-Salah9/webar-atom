@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR Atom Visualizer</title>
+    <title>WebVR Atom Visualizer</title>
     <style>
         body {
             margin: 0;
@@ -29,7 +29,7 @@
             z-index: 100;
         }
 
-        .ar-button {
+        .vr-button {
             background: linear-gradient(45deg, #f31e1e, #4ECDC4);
             color: white;
             border: none;
@@ -47,12 +47,12 @@
             transition: all 0.3s ease;
         }
 
-        .ar-button:hover {
+        .vr-button:hover {
             transform: translateX(-50%) translateY(-3px);
             box-shadow: 0 12px 35px rgba(0,0,0,0.4);
         }
 
-        .ar-button:disabled {
+        .vr-button:disabled {
             background: #666;
             cursor: not-allowed;
         }
@@ -511,7 +511,7 @@
                 padding: 15px;
             }
             
-            .ar-button {
+            .vr-button {
                 font-size: 16px;
                 padding: 12px 24px;
             }
@@ -523,13 +523,13 @@
     
     <div class="ui-overlay">
         <div class="instructions" id="instructions">
-            <h3>🚀 WebAR Atom Visualizer</h3>
+            <h3>🚀 WebVR Atom Visualizer</h3>
             <ul>
-                <li>📱 Point your camera at a flat surface</li>
-                <li>🎯 Tap when you see the green ring</li>
-                <li>📏 Use controllers or pinch to scale</li>
-                <li>🔄 Rotate with two-finger twist</li>
-                <li>👆 Single tap to move atom</li>
+                <li>🥽 Put on your VR headset</li>
+                <li>🎯 The atom will appear in front of you</li>
+                <li>🎮 Use VR controllers to interact</li>
+                <li>📏 Squeeze controllers to scale</li>
+                <li>🔄 Grab and move the atom around</li>
             </ul>
         </div>
 
@@ -541,7 +541,7 @@
             <button class="control-btn" id="reset" title="Reset">⟲</button>
         </div>
         
-        <button class="ar-button" id="arButton">Start AR Experience</button>
+        <button class="vr-button" id="vrButton">Enter VR Experience</button>
 
         <div class="scene-footer hidden" id="sceneFooter">
             <div class="scene-indicator" id="sceneIndicator">المشهد ١ / ٦</div>

@@ -1,20 +1,17 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
-import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/ARButton.js';
+import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/VRButton.js';
 import { AtomModel } from './atom.js';
 import { InteractionManager } from './interactions.js';
 
-class WebARAtomApp {
+class WebVRAtomApp {
     constructor() {
         // Core Three.js components
         this.scene = null;
         this.camera = null;
         this.renderer = null;
         
-        // AR components
-        this.reticle = null;
-        this.hitTestSource = null;
-        this.hitTestSourceRequested = false;
-        this.localSpace = null;
+        // VR components
+        this.vrCube = null;
         
         // App components
         this.atom = null;
@@ -22,7 +19,7 @@ class WebARAtomApp {
         this.sceneIndex = 0; // 0..5 (6 scenes)
         
         // State
-        this.isARActive = false;
+        this.isVRActive = false;
         this.atomPlaced = false;
         
         // Performance
@@ -37,25 +34,80 @@ class WebARAtomApp {
             this.createScene();
             this.createCamera();
             this.createRenderer();
+            this.createVRCube();
             this.createLighting();
-            this.createReticle();
-            this.setupARButton();
+            this.setupVRButton();
             this.setupInteractions();
             this.setupEventListeners();
             this.setupEducationUI();
             this.setupSceneControls();
+            this.placeAtom(); // Place atom immediately in VR
             
             this.animate();
             
             console.log('âœ… WebAR Atom App initialized successfully');
         } catch (error) {
             console.error('âŒ Failed to initialize WebAR Atom App:', error);
-            this.showError('Failed to initialize AR. Please check browser compatibility.');
+            this.showError('Failed to initialize VR. Please check browser compatibility.');
         }
     }
 
     createScene() {
         this.scene = new THREE.Scene();
+        // Set a dark space background for VR
+        this.scene.background = new THREE.Color(0x0a0a0a);
+    }
+    
+    createVRCube() {
+        // Create a large cube that serves as the VR environment
+        const cubeSize = 10;
+        const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+        
+        // Create materials for each face with different colors/textures
+        const materials = [
+            new THREE.MeshLambertMaterial({ color: 0x1a1a2e, side: THREE.BackSide }), // Right
+            new THREE.MeshLambertMaterial({ color: 0x16213e, side: THREE.BackSide }), // Left  
+            new THREE.MeshLambertMaterial({ color: 0x0f3460, side: THREE.BackSide }), // Top
+            new THREE.MeshLambertMaterial({ color: 0x533483, side: THREE.BackSide }), // Bottom
+            new THREE.MeshLambertMaterial({ color: 0x1a1a2e, side: THREE.BackSide }), // Front
+            new THREE.MeshLambertMaterial({ color: 0x16213e, side: THREE.BackSide })  // Back
+        ];
+        
+        this.vrCube = new THREE.Mesh(cubeGeometry, materials);
+        this.vrCube.position.set(0, 0, 0);
+        this.scene.add(this.vrCube);
+        
+        // Add some ambient lighting effects to the cube walls
+        this.addCubeEffects();
+        
+        console.log('🧊 VR Cube environment created');
+    }
+    
+    addCubeEffects() {
+        // Add some glowing particles or effects to make the cube more interesting
+        const particleCount = 200;
+        const particles = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            // Distribute particles throughout the cube space
+            positions[i] = (Math.random() - 0.5) * 8;     // x
+            positions[i + 1] = (Math.random() - 0.5) * 8; // y  
+            positions[i + 2] = (Math.random() - 0.5) * 8; // z
+        }
+        
+        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0x4a9eff,
+            size: 0.02,
+            transparent: true,
+            opacity: 0.6
+        });
+        
+        const particleSystem = new THREE.Points(particles, particleMaterial);
+        this.scene.add(particleSystem);
+        this.particleSystem = particleSystem;
     }
 
     createCamera() {
@@ -86,87 +138,73 @@ class WebARAtomApp {
     }
 
     createLighting() {
-        // Ambient light for overall illumination
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Enhanced lighting for enclosed VR environment
+        // Ambient light for overall illumination - brighter for VR
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
 
-        // Directional light for shadows and definition
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 1);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 1024;
-        directionalLight.shadow.mapSize.height = 1024;
-        this.scene.add(directionalLight);
+        // Multiple directional lights for better atom visibility in VR cube
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight1.position.set(2, 2, 2);
+        directionalLight1.castShadow = true;
+        directionalLight1.shadow.mapSize.width = 1024;
+        directionalLight1.shadow.mapSize.height = 1024;
+        this.scene.add(directionalLight1);
 
-        // Hemisphere light for better color balance
-        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-        this.scene.add(hemisphereLight);
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight2.position.set(-2, -1, 1);
+        this.scene.add(directionalLight2);
+
+        // Point lights for dynamic lighting effects
+        const pointLight1 = new THREE.PointLight(0x4a9eff, 0.8, 8);
+        pointLight1.position.set(2, 2, 2);
+        this.scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xff6b4a, 0.6, 8);
+        pointLight2.position.set(-2, -2, -2);
+        this.scene.add(pointLight2);
+
+        // Store lights for animation
+        this.lights = {
+            point1: pointLight1,
+            point2: pointLight2
+        };
     }
 
-    createReticle() {
-        // Create placement reticle (group gets the AR plane pose; ring is rotated flat)
-        this.reticle = new THREE.Group();
-        this.reticle.matrixAutoUpdate = false;
-        this.reticle.visible = false;
+    // VR doesn't need reticle - removed
 
-        const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32);
-        const reticleMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            transparent: true,
-            opacity: 0.8,
-            side: THREE.DoubleSide
-        });
-
-        const ring = new THREE.Mesh(reticleGeometry, reticleMaterial);
-        // Rotate ring to lie on XZ plane (so its normal points up +Y)
-        ring.rotation.x = -Math.PI / 2;
-        this.reticle.add(ring);
-        this.scene.add(this.reticle);
-
-        // Add pulsing animation to reticle
-        this.reticle.userData.pulsePhase = 0;
-    }
-
-    setupARButton() {
-        // Remove existing AR button
-        const existingButton = document.getElementById('arButton');
+    setupVRButton() {
+        // Remove existing button
+        const existingButton = document.getElementById('vrButton') || document.getElementById('arButton');
         if (existingButton) {
             existingButton.remove();
         }
 
-        // Create new AR button with Three.js ARButton
-        const arButton = ARButton.createButton(this.renderer, {
-            requiredFeatures: ['hit-test'],
-            optionalFeatures: ['dom-overlay', 'light-estimation'],
+        // Create new VR button with Three.js VRButton
+        const vrButton = VRButton.createButton(this.renderer, {
+            optionalFeatures: ['dom-overlay'],
             domOverlay: { root: document.querySelector('.ui-overlay') }
         });
 
         // Style the button
-        arButton.id = 'arButton';
-        arButton.className = 'ar-button';
-        arButton.textContent = 'Start AR Experience';
+        vrButton.id = 'vrButton';
+        vrButton.className = 'vr-button';
+        vrButton.textContent = 'Enter VR Experience';
         
         // Add to overlay
-        document.querySelector('.ui-overlay').appendChild(arButton);
+        document.querySelector('.ui-overlay').appendChild(vrButton);
 
-        // AR session events
+        // VR session events
         this.renderer.xr.addEventListener('sessionstart', () => {
-            console.log('ðŸš€ AR session started');
-            this.isARActive = true;
+            console.log('🚀 VR session started');
+            this.isVRActive = true;
             this.hideInstructions();
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
-            console.log('ðŸ›‘ AR session ended');
-            this.isARActive = false;
-            this.atomPlaced = false;
+            console.log('🛑 VR session ended');
+            this.isVRActive = false;
             this.showInstructions();
-            
-            if (this.atom) {
-                this.scene.remove(this.atom.getGroup());
-                this.atom.dispose();
-                this.atom = null;
-            }
         });
     }
 
@@ -177,9 +215,9 @@ class WebARAtomApp {
             this.camera
         );
 
-        // Setup controller select events for atom placement
+        // Setup controller select events for VR interactions
         const controllers = this.renderer.xr.getController(0);
-        controllers.addEventListener('select', () => this.onSelect());
+        controllers.addEventListener('select', () => this.onVRSelect());
         this.scene.add(controllers);
 
         // Listen for part selection to update UI text
@@ -200,31 +238,30 @@ class WebARAtomApp {
         if (prevBtn) prevBtn.addEventListener('click', () => this.gotoScene(this.sceneIndex - 1));
     }
 
-    onSelect() {
-        if (this.reticle.visible && !this.atomPlaced) {
-            this.placeAtom();
-        }
+    onVRSelect() {
+        // VR interactions handled by InteractionManager
+        console.log('VR controller select event');
     }
 
     placeAtom() {
-        console.log('ðŸŽ¯ Placing atom');
+        console.log('🎯 Placing atom in VR');
         
         // Create atom model
         this.atom = new AtomModel();
         
-        // Position atom at reticle location
+        // Position atom at center of VR cube
         const atomGroup = this.atom.getGroup();
-        atomGroup.position.setFromMatrixPosition(this.reticle.matrix);
-        atomGroup.scale.setScalar(0.5); // Start smaller for mobile screens
+        atomGroup.position.set(0, 0, -2); // Center in front of user
+        atomGroup.scale.setScalar(1.0); // Good size for VR
         
         this.scene.add(atomGroup);
         
         // Setup interactions
         this.interactionManager.setAtom(this.atom);
         
-        // Hide reticle and update state
-        this.reticle.visible = false;
+        // Update state
         this.atomPlaced = true;
+        
         // Show intro panel now that the atom exists
         const panel = document.getElementById('eduPanel');
         if (panel) {
@@ -236,11 +273,7 @@ class WebARAtomApp {
             `;
         }
         
-        // Stop hit testing
-        this.hitTestSource = null;
-        this.hitTestSourceRequested = false;
-        
-        console.log('âœ… Atom placed successfully');
+        console.log('✅ Atom placed successfully in VR');
 
         // Show scene footer controls now
         const footer = document.getElementById('sceneFooter');
@@ -273,11 +306,8 @@ class WebARAtomApp {
             this.interactionManager.update();
         }
 
-        // Handle AR hit testing
-        this.handleHitTesting(frame);
-        
-        // Animate reticle
-        this.animateReticle(deltaTime);
+        // Animate VR environment effects
+        this.animateVREffects(deltaTime);
         
         // Render scene
         this.renderer.render(this.scene, this.camera);
@@ -289,61 +319,21 @@ class WebARAtomApp {
         }
     }
 
-    handleHitTesting(frame) {
-        if (!frame || this.atomPlaced) return;
-
-        const referenceSpace = this.renderer.xr.getReferenceSpace();
-        const session = this.renderer.xr.getSession();
-
-        if (!this.hitTestSourceRequested) {
-            session.requestReferenceSpace('viewer').then((referenceSpace) => {
-                session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-                    this.hitTestSource = source;
-                }).catch((error) => {
-                    console.warn('Hit test not supported:', error);
-                });
-            });
-
-            session.addEventListener('end', () => {
-                this.hitTestSourceRequested = false;
-                this.hitTestSource = null;
-            });
-
-            this.hitTestSourceRequested = true;
+    animateVREffects(deltaTime) {
+        // Animate particle system
+        if (this.particleSystem) {
+            this.particleSystem.rotation.y += deltaTime * 0.1;
+            this.particleSystem.rotation.x += deltaTime * 0.05;
         }
-
-        if (this.hitTestSource) {
-            const hitTestResults = frame.getHitTestResults(this.hitTestSource);
+        
+        // Animate lights for dynamic effects
+        if (this.lights) {
+            this.lights.point1.position.x = Math.sin(this.time * 0.5) * 3;
+            this.lights.point1.position.z = Math.cos(this.time * 0.3) * 3;
             
-            if (hitTestResults.length > 0) {
-                const hit = hitTestResults[0];
-                const pose = hit.getPose(referenceSpace);
-                
-                if (pose) {
-                    this.reticle.visible = true;
-                    this.reticle.matrix.fromArray(pose.transform.matrix);
-                }
-            } else {
-                this.reticle.visible = false;
-            }
+            this.lights.point2.position.x = Math.cos(this.time * 0.4) * 2;
+            this.lights.point2.position.y = Math.sin(this.time * 0.6) * 2;
         }
-    }
-
-    animateReticle(deltaTime) {
-        if (!this.reticle.visible) return;
-        
-        // Pulse animation
-        this.reticle.userData.pulsePhase += deltaTime * 3;
-        const pulseScale = 1 + Math.sin(this.reticle.userData.pulsePhase) * 0.1;
-        
-        const currentScale = new THREE.Vector3();
-        currentScale.setFromMatrixScale(this.reticle.matrix);
-        
-        const newMatrix = new THREE.Matrix4();
-        newMatrix.copy(this.reticle.matrix);
-        newMatrix.scale(new THREE.Vector3(pulseScale, pulseScale, pulseScale));
-        
-        this.reticle.matrix.copy(newMatrix);
     }
 
     updatePerformanceStats() {
@@ -746,32 +736,32 @@ class WebARAtomApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('ðŸš€ Starting WebAR Atom App...');
+    console.log('🚀 Starting WebVR Atom App...');
     
     // Check WebXR support
     if (navigator.xr) {
-        navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
             if (supported) {
-                console.log('âœ… WebXR AR supported');
-                new WebARAtomApp();
+                console.log('✅ WebXR VR supported');
+                window.webVRApp = new WebVRAtomApp();
             } else {
                 console.warn('âš ï¸ WebXR AR not supported');
-                document.getElementById('arButton').textContent = 'AR Not Supported';
-                document.getElementById('arButton').disabled = true;
+                // Still create the app for desktop preview
+                console.log('Creating app for desktop preview');
+                window.webVRApp = new WebVRAtomApp();
             }
         });
     } else {
         console.warn('âš ï¸ WebXR not available');
-        document.getElementById('arButton').textContent = 'WebXR Not Available';
-        document.getElementById('arButton').disabled = true;
+        window.webVRApp = new WebVRAtomApp();
     }
 });
 
 // Handle app lifecycle
 window.addEventListener('beforeunload', () => {
-    if (window.webARApp) {
-        window.webARApp.dispose();
+    if (window.webVRApp) {
+        window.webVRApp.dispose();
     }
 });
 
-export { WebARAtomApp };
+export { WebVRAtomApp };
