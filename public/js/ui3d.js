@@ -12,18 +12,18 @@ export class UI3D {
         this.sceneControls = null;
         this.currentSceneIndex = 0;
         
-        // Materials
+        // Materials - make them much brighter and more visible
         this.panelMaterial = new THREE.MeshBasicMaterial({
-            color: 0x1a1a2e,
+            color: 0x000080, // Bright blue
             transparent: true,
-            opacity: 0.9,
+            opacity: 1.0,
             side: THREE.DoubleSide
         });
         
         this.buttonMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4ECDC4,
+            color: 0x00ff00, // Bright green
             transparent: true,
-            opacity: 0.8
+            opacity: 1.0
         });
         
         this.textMaterial = new THREE.MeshBasicMaterial({
@@ -37,8 +37,12 @@ export class UI3D {
         
         this.createEducationalPanel();
         this.createSceneControls();
+        this.createDebugCube(); // Add a debug cube to test visibility
         
-        console.log('3D UI system initialized');
+        // Make sure UI is visible by default for debugging
+        this.uiGroup.visible = true;
+        
+        console.log('3D UI system initialized', this.uiGroup);
     }
     
     createEducationalPanel() {
@@ -46,16 +50,16 @@ export class UI3D {
         const panelGeometry = new THREE.PlaneGeometry(3, 2);
         this.eduPanel = new THREE.Mesh(panelGeometry, this.panelMaterial.clone());
         
-        // Position panel to the right of the atom
-        this.eduPanel.position.set(2.5, 1, -2);
-        this.eduPanel.rotation.y = -Math.PI / 6; // Angle towards user
+        // Position panel directly in front of user - impossible to miss
+        this.eduPanel.position.set(0, 0, -1); // Right in front, close
+        this.eduPanel.rotation.y = 0; // No rotation, face user directly
         
-        // Add border
+        // Add bright border
         const borderGeometry = new THREE.PlaneGeometry(3.1, 2.1);
         const borderMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4ECDC4,
+            color: 0xff0000, // Bright red border
             transparent: true,
-            opacity: 0.6,
+            opacity: 1.0,
             side: THREE.DoubleSide
         });
         const border = new THREE.Mesh(borderGeometry, borderMaterial);
@@ -88,9 +92,9 @@ export class UI3D {
         nextButton.userData = { action: 'next' };
         controlsGroup.add(nextButton);
         
-        // Position controls at bottom
-        controlsGroup.position.set(0, -2.5, -2);
-        controlsGroup.rotation.x = Math.PI / 12; // Slight upward angle
+        // Position controls directly below user view
+        controlsGroup.position.set(0, -0.8, -1);
+        controlsGroup.rotation.x = 0; // No rotation
         
         this.sceneControls = controlsGroup;
         this.uiGroup.add(controlsGroup);
@@ -159,6 +163,20 @@ export class UI3D {
         panelGroup.add(textMesh);
         
         return panelGroup;
+    }
+    
+    createDebugCube() {
+        // Create a bright debug cube to test visibility
+        const cubeGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const cubeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff, // Bright magenta
+            wireframe: false
+        });
+        const debugCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        debugCube.position.set(0, 0.5, -1); // Right in front, above panel
+        
+        this.uiGroup.add(debugCube);
+        console.log('Debug cube added at position:', debugCube.position);
     }
     
     createTextTexture(text, fontSize = 48, textColor = '#ffffff', backgroundColor = 'transparent') {
@@ -310,10 +328,14 @@ export class UI3D {
     
     show() {
         this.uiGroup.visible = true;
+        console.log('3D UI show() called - UI should be visible now');
+        console.log('UI Group visible:', this.uiGroup.visible);
+        console.log('UI Group children:', this.uiGroup.children.length);
     }
     
     hide() {
         this.uiGroup.visible = false;
+        console.log('3D UI hide() called - UI should be hidden now');
     }
     
     dispose() {

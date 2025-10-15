@@ -120,7 +120,10 @@ class WebVRAtomApp {
             this.gotoScene(sceneIndex);
         });
         
-        console.log('3D UI system created');
+        // Make sure UI starts visible for testing
+        this.ui3d.show();
+        
+        console.log('3D UI system created', this.ui3d);
     }
 
     createCamera() {
@@ -211,9 +214,10 @@ class WebVRAtomApp {
             this.hideInstructions();
             // Hide VR button in VR
             vrButton.style.display = 'none';
-            // Show 3D UI elements in VR
+            // Show 3D UI elements in VR - make sure they're visible
             if (this.ui3d) {
                 this.ui3d.show();
+                console.log('3D UI should now be visible', this.ui3d.uiGroup.visible);
             }
         });
 
@@ -304,10 +308,12 @@ class WebVRAtomApp {
         // Create atom model
         this.atom = new AtomModel();
         
-        // Position atom at center of VR cube
+        // Position atom to the side so it doesn't block UI
         const atomGroup = this.atom.getGroup();
-        atomGroup.position.set(0, 0, -2); // Center in front of user
-        atomGroup.scale.setScalar(1.0); // Good size for VR
+        atomGroup.position.set(-1.5, 0, -2); // Left side, behind UI
+        atomGroup.scale.setScalar(0.8); // Slightly smaller
+        
+        console.log('Atom positioned at:', atomGroup.position);
         
         this.scene.add(atomGroup);
         
@@ -323,6 +329,15 @@ class WebVRAtomApp {
                 "مرحباً بك في عالم الذرة!", 
                 "هذه هي الذرّة. هي أصغر جزء في المادة، وكل شيء حولك مكوّن منها. وتتكون من أجزاء عدة: لنتعرف عليها!"
             );
+            console.log('3D UI updated with intro content');
+            console.log('UI Group children count:', this.ui3d.uiGroup.children.length);
+            console.log('UI Group visible:', this.ui3d.uiGroup.visible);
+            console.log('Scene children count:', this.scene.children.length);
+            
+            // Log positions of UI elements
+            this.ui3d.uiGroup.children.forEach((child, index) => {
+                console.log(`UI Child ${index}:`, child.position, 'visible:', child.visible);
+            });
         }
         
         console.log('✅ Atom placed successfully in VR');
