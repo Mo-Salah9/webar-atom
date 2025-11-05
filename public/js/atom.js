@@ -260,8 +260,7 @@ export class AtomModel {
             this.group.add(electron);
             this.electrons.push(electron);
 
-            // Create electron trail
-            this.createElectronTrail(electron, index);
+            // Electron trail disabled
         });
     }
 
@@ -506,8 +505,7 @@ export class AtomModel {
                 electron.position.x += Math.sin(this.time * 5 + index) * wobble;
                 electron.position.y += Math.cos(this.time * 3 + index) * wobble;
                 
-                // Update electron trail
-                this.updateElectronTrail(electron);
+                // Electron trail update disabled
             }
         });
 
