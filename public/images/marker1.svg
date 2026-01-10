@@ -1,0 +1,30 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Atom Marker - Circular pattern with nucleus and electron orbits -->
+  <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="100" y="20" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">ATOM</text>
+  
+  <!-- Nucleus -->
+  <circle cx="100" cy="100" r="15" fill="#ff3333" stroke="#000" stroke-width="2"/>
+  
+  <!-- Electron orbits -->
+  <circle cx="100" cy="100" r="40" fill="none" stroke="#4ECDC4" stroke-width="2" stroke-dasharray="5,5"/>
+  <circle cx="100" cy="100" r="65" fill="none" stroke="#4ECDC4" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Electrons -->
+  <circle cx="140" cy="100" r="5" fill="#00ff66"/>
+  <circle cx="60" cy="100" r="5" fill="#00ff66"/>
+  <circle cx="100" cy="35" r="5" fill="#00ff66"/>
+  <circle cx="100" cy="165" r="5" fill="#00ff66"/>
+  
+  <!-- Corner markers for recognition -->
+  <rect x="10" y="10" width="20" height="20" fill="black"/>
+  <rect x="170" y="10" width="20" height="20" fill="black"/>
+  <rect x="10" y="170" width="20" height="20" fill="black"/>
+  
+  <!-- QR-like pattern for better recognition -->
+  <rect x="15" y="15" width="10" height="10" fill="white"/>
+  <rect x="175" y="15" width="10" height="10" fill="white"/>
+  <rect x="15" y="175" width="10" height="10" fill="white"/>
+</svg>

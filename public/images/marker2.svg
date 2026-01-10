@@ -1,0 +1,35 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Molecule Marker - H2O water molecule pattern -->
+  <rect width="200" height="200" fill="white" stroke="black" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="100" y="20" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">H₂O</text>
+  
+  <!-- Oxygen atom (large, red) -->
+  <circle cx="100" cy="100" r="20" fill="#ff4444" stroke="#000" stroke-width="2"/>
+  <text x="100" y="105" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="white">O</text>
+  
+  <!-- Hydrogen atoms (small, white) -->
+  <circle cx="60" cy="80" r="12" fill="#ffffff" stroke="#000" stroke-width="2"/>
+  <text x="60" y="85" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">H</text>
+  
+  <circle cx="140" cy="120" r="12" fill="#ffffff" stroke="#000" stroke-width="2"/>
+  <text x="140" y="125" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">H</text>
+  
+  <!-- Bonds -->
+  <line x1="80" y1="90" x2="88" y2="95" stroke="#333" stroke-width="3"/>
+  <line x1="112" y1="105" x2="128" y2="115" stroke="#333" stroke-width="3"/>
+  
+  <!-- Corner markers for recognition -->
+  <rect x="10" y="10" width="20" height="20" fill="black"/>
+  <rect x="170" y="10" width="20" height="20" fill="black"/>
+  <rect x="10" y="170" width="20" height="20" fill="black"/>
+  
+  <!-- Different pattern from marker1 -->
+  <circle cx="20" y="20" r="5" fill="white"/>
+  <circle cx="180" y="20" r="5" fill="white"/>
+  <circle cx="20" y="180" r="5" fill="white"/>
+  
+  <!-- Additional geometric elements for recognition -->
+  <polygon points="100,160 90,180 110,180" fill="#4ECDC4"/>
+</svg>

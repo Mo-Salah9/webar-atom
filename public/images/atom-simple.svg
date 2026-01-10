@@ -1,0 +1,60 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" style="background: white;">
+  <!-- Simple, high-contrast atom diagram for better recognition -->
+  
+  <!-- Title -->
+  <text x="200" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000">ATOM</text>
+  
+  <!-- Outer border for recognition -->
+  <rect x="10" y="10" width="380" height="380" fill="none" stroke="#000" stroke-width="4"/>
+  
+  <!-- Nucleus (large red circle) -->
+  <circle cx="200" cy="200" r="40" fill="#FF0000" stroke="#000" stroke-width="3"/>
+  <text x="200" y="210" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="white">NUCLEUS</text>
+  
+  <!-- Inner protons and neutrons -->
+  <circle cx="185" cy="185" r="8" fill="#CC0000"/>
+  <text x="185" y="190" text-anchor="middle" font-family="Arial" font-size="8" fill="white">P</text>
+  
+  <circle cx="215" cy="185" r="8" fill="#CC0000"/>
+  <text x="215" y="190" text-anchor="middle" font-family="Arial" font-size="8" fill="white">P</text>
+  
+  <circle cx="185" cy="215" r="8" fill="#0066FF"/>
+  <text x="185" y="220" text-anchor="middle" font-family="Arial" font-size="8" fill="white">N</text>
+  
+  <circle cx="215" cy="215" r="8" fill="#0066FF"/>
+  <text x="215" y="220" text-anchor="middle" font-family="Arial" font-size="8" fill="white">N</text>
+  
+  <!-- Electron orbits (thick black circles) -->
+  <circle cx="200" cy="200" r="80" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="8,4"/>
+  <circle cx="200" cy="200" r="120" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="8,4"/>
+  <circle cx="200" cy="200" r="160" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="8,4"/>
+  
+  <!-- Electrons (bright green circles) -->
+  <circle cx="280" cy="200" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="280" y="206" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <circle cx="120" cy="200" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="120" y="206" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <circle cx="200" cy="80" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="200" y="86" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <circle cx="200" cy="320" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="200" y="326" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <!-- Second shell electrons -->
+  <circle cx="285" cy="285" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="285" y="291" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <circle cx="115" cy="115" r="12" fill="#00FF00" stroke="#000" stroke-width="2"/>
+  <text x="115" y="121" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold">e-</text>
+  
+  <!-- Corner recognition markers -->
+  <rect x="20" y="20" width="30" height="30" fill="#FF0000"/>
+  <rect x="350" y="20" width="30" height="30" fill="#0066FF"/>
+  <rect x="20" y="350" width="30" height="30" fill="#00FF00"/>
+  <rect x="350" y="350" width="30" height="30" fill="#000"/>
+  
+  <!-- Labels -->
+  <text x="200" y="370" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Protons (Red) + Neutrons (Blue) + Electrons (Green)</text>
+</svg>

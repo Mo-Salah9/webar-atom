@@ -505,6 +505,133 @@
             color: #333;
         }
 
+        /* Model Selector Styles */
+        .model-selector {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 100;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .model-selector h3 {
+            margin: 0 0 15px 0;
+            color: #4ECDC4;
+            text-align: center;
+        }
+
+        .marker-images {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .marker-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .marker-preview {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #4ECDC4;
+            border-radius: 10px;
+            object-fit: cover;
+            background: white;
+            padding: 5px;
+        }
+
+        .marker-item p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .instructions-text {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .instructions-text p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .instructions-text strong {
+            color: #4ECDC4;
+        }
+
+        /* AR Canvas and Video */
+        #arVideo, #arCanvas {
+            width: 100vw !important;
+            height: 100vh !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #arCanvas {
+            pointer-events: auto;
+            z-index: 2;
+        }
+
+        /* Model manipulation controls */
+        .manipulation-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .control-button {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid #4ECDC4;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: #4ECDC4;
+            transform: scale(1.1);
+        }
+
+        .model-info {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .model-info.visible {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .instructions {
                 font-size: 14px;
@@ -515,11 +642,59 @@
                 font-size: 16px;
                 padding: 12px 24px;
             }
+
+            .model-selector {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 15px;
+            }
+
+            .marker-images {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .marker-preview {
+                width: 100px;
+                height: 100px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="container"></div>
+    <div id="container">
+        <!-- AR Camera View -->
+        <video id="arVideo" autoplay muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;"></video>
+        
+        <!-- Three.js Canvas -->
+        <canvas id="arCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></canvas>
+        
+        <!-- Model Selection UI -->
+        <div id="modelSelector" class="model-selector">
+            <h3>📸 Point camera at these reference images:</h3>
+            <div class="marker-images">
+                <div class="marker-item">
+                    <img src="images/atom-simple.svg" alt="Atom Diagram" class="marker-preview">
+                    <p>Atom Structure</p>
+                </div>
+                <div class="marker-item">
+                    <img src="images/water-simple.svg" alt="Water Molecule" class="marker-preview">
+                    <p>H₂O Molecule</p>
+                </div>
+            </div>
+            <div class="instructions-text">
+                <p>📋 <strong>Instructions:</strong></p>
+                <p>1. Display or print the reference images above</p>
+                <p>2. Point your camera at the real image</p>
+                <p>3. The system will recognize the image features</p>
+                <p>4. A 3D model will spawn when detected</p>
+                <p>5. Use touch to rotate, pinch to scale</p>
+                <p>6. Switch between images to change models</p>
+                <p><a href="test-images.html" style="color: #4ECDC4; text-decoration: underline;">🎯 Get Test Images →</a></p>
+            </div>
+        </div>
+    </div>
     
     <div class="ui-overlay">
         <div class="instructions" id="instructions">
@@ -541,7 +716,21 @@
             <button class="control-btn" id="reset" title="Reset">⟲</button>
         </div>
         
-        <button class="ar-button" id="arButton">Start AR Experience</button>
+        <button class="ar-button hidden" id="arButton">Start AR Experience</button>
+        
+        <!-- Model Manipulation Controls -->
+        <div class="manipulation-controls hidden" id="manipulationControls">
+            <button class="control-button" id="rotateBtn" title="Rotate">🔄</button>
+            <button class="control-button" id="scaleUpBtn" title="Scale Up">➕</button>
+            <button class="control-button" id="scaleDownBtn" title="Scale Down">➖</button>
+            <button class="control-button" id="resetBtn" title="Reset">↺</button>
+        </div>
+        
+        <!-- Model Information Panel -->
+        <div class="model-info" id="modelInfo">
+            <h4 id="modelTitle">Model Name</h4>
+            <p id="modelDescription">Model description will appear here.</p>
+        </div>
 
         <div class="scene-footer hidden" id="sceneFooter">
             <div class="scene-indicator" id="sceneIndicator">المشهد ١ / ٦</div>
@@ -597,7 +786,11 @@
         </div>
     </div>
 
+    <!-- OpenCV.js for advanced computer vision -->
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <!-- JSFeat as fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/jsfeat@0.0.8/build/jsfeat.min.js"></script>
     <script src="js/webxr-polyfill.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/real-image-ar.js"></script>
 </body>
 </html>

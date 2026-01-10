@@ -1,0 +1,43 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" style="background: white;">
+  <!-- Simple, high-contrast water molecule for better recognition -->
+  
+  <!-- Title -->
+  <text x="200" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000">H₂O WATER</text>
+  
+  <!-- Outer border for recognition -->
+  <rect x="10" y="10" width="380" height="380" fill="none" stroke="#000" stroke-width="4"/>
+  
+  <!-- Oxygen atom (large red circle) -->
+  <circle cx="200" cy="200" r="50" fill="#FF0000" stroke="#000" stroke-width="4"/>
+  <text x="200" y="210" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="white">O</text>
+  <text x="200" y="225" text-anchor="middle" font-family="Arial" font-size="12" fill="white">OXYGEN</text>
+  
+  <!-- Hydrogen atoms (smaller white circles) -->
+  <circle cx="120" cy="120" r="30" fill="#FFFFFF" stroke="#000" stroke-width="3"/>
+  <text x="120" y="130" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold" fill="#000">H</text>
+  <text x="120" y="145" text-anchor="middle" font-family="Arial" font-size="10" fill="#000">HYDROGEN</text>
+  
+  <circle cx="280" cy="120" r="30" fill="#FFFFFF" stroke="#000" stroke-width="3"/>
+  <text x="280" y="130" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold" fill="#000">H</text>
+  <text x="280" y="145" text-anchor="middle" font-family="Arial" font-size="10" fill="#000">HYDROGEN</text>
+  
+  <!-- Covalent bonds (thick black lines) -->
+  <line x1="150" y1="150" x2="175" y2="175" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+  <line x1="225" y1="175" x2="250" y2="150" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Bond angle -->
+  <path d="M 160 160 A 30 30 0 0 1 240 160" fill="none" stroke="#666" stroke-width="2"/>
+  <text x="200" y="140" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">104.5°</text>
+  
+  <!-- Molecular shape indicator -->
+  <text x="200" y="300" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">BENT SHAPE</text>
+  
+  <!-- Corner recognition markers (different from atom) -->
+  <circle cx="30" cy="30" r="15" fill="#FF0000"/>
+  <circle cx="370" cy="30" r="15" fill="#FFFFFF" stroke="#000" stroke-width="2"/>
+  <circle cx="30" cy="370" r="15" fill="#0066FF"/>
+  <circle cx="370" cy="370" r="15" fill="#000"/>
+  
+  <!-- Chemical formula -->
+  <text x="200" y="360" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold">H - O - H (Water Molecule)</text>
+</svg>

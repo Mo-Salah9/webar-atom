@@ -1,0 +1,89 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Real-looking atom diagram for recognition -->
+  <defs>
+    <radialGradient id="nucleusGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffaa00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff6600;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="protonGrad" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ff6666;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#cc0000;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="neutronGrad" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#6699ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0066cc;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="electronGrad" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#66ff66;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00cc00;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="300" height="300" fill="#f8f8f8" stroke="#ddd" stroke-width="2"/>
+  
+  <!-- Title -->
+  <text x="150" y="25" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold" fill="#333">ATOMIC STRUCTURE</text>
+  
+  <!-- Nucleus background glow -->
+  <circle cx="150" cy="150" r="45" fill="url(#nucleusGrad)" opacity="0.3"/>
+  
+  <!-- Protons in nucleus -->
+  <circle cx="135" cy="135" r="12" fill="url(#protonGrad)" stroke="#990000" stroke-width="1"/>
+  <text x="135" y="140" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">P+</text>
+  
+  <circle cx="165" cy="135" r="12" fill="url(#protonGrad)" stroke="#990000" stroke-width="1"/>
+  <text x="165" y="140" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">P+</text>
+  
+  <circle cx="135" cy="165" r="12" fill="url(#protonGrad)" stroke="#990000" stroke-width="1"/>
+  <text x="135" y="170" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">P+</text>
+  
+  <circle cx="165" cy="165" r="12" fill="url(#protonGrad)" stroke="#990000" stroke-width="1"/>
+  <text x="165" y="170" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">P+</text>
+  
+  <!-- Neutrons in nucleus -->
+  <circle cx="150" cy="125" r="12" fill="url(#neutronGrad)" stroke="#0044aa" stroke-width="1"/>
+  <text x="150" y="130" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">N</text>
+  
+  <circle cx="150" cy="175" r="12" fill="url(#neutronGrad)" stroke="#0044aa" stroke-width="1"/>
+  <text x="150" y="180" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">N</text>
+  
+  <circle cx="125" cy="150" r="12" fill="url(#neutronGrad)" stroke="#0044aa" stroke-width="1"/>
+  <text x="125" y="155" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">N</text>
+  
+  <circle cx="175" cy="150" r="12" fill="url(#neutronGrad)" stroke="#0044aa" stroke-width="1"/>
+  <text x="175" y="155" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">N</text>
+  
+  <!-- Electron shells -->
+  <circle cx="150" cy="150" r="80" fill="none" stroke="#666" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"/>
+  <circle cx="150" cy="150" r="120" fill="none" stroke="#666" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"/>
+  
+  <!-- Electrons -->
+  <circle cx="230" cy="150" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="230" y="155" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <circle cx="70" cy="150" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="70" y="155" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <circle cx="150" cy="30" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="150" y="35" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <circle cx="150" cy="270" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="150" y="275" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <!-- Second shell electrons -->
+  <circle cx="195" cy="105" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="195" y="110" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <circle cx="105" cy="195" r="8" fill="url(#electronGrad)" stroke="#006600" stroke-width="1"/>
+  <text x="105" y="200" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="white">e-</text>
+  
+  <!-- Labels -->
+  <text x="50" y="290" font-family="Arial" font-size="12" fill="#666">Nucleus: Protons (P+) & Neutrons (N)</text>
+  <text x="200" y="290" font-family="Arial" font-size="12" fill="#666">Electrons (e-)</text>
+  
+  <!-- Unique visual features for recognition -->
+  <polygon points="20,20 40,20 30,40" fill="#ff6600"/>
+  <polygon points="260,20 280,20 270,40" fill="#0066cc"/>
+  <polygon points="20,260 40,260 30,280" fill="#00cc00"/>
+</svg>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Test Images - WebAR Atom Visualizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .image-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .image-card h2 {
+            margin-top: 0;
+            color: #764ba2;
+        }
+
+        .test-image {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 3px solid #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+            background: white;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .instructions {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 40px 0;
+        }
+
+        .instructions h3 {
+            color: #4ECDC4;
+            margin-top: 0;
+        }
+
+        .step {
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            background: #4ECDC4;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .images-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to AR App</a>
+        
+        <h1>🎯 AR Test Images</h1>
+        <p class="subtitle">Download or display these images to test the AR recognition</p>
+
+        <div class="images-grid">
+            <!-- Atom Image -->
+            <div class="image-card">
+                <h2>🔬 Atom Structure</h2>
+                <img src="images/atom-simple.svg" alt="Atom Test Image" class="test-image">
+                <p><strong>Use this image to spawn the 3D Atom model</strong></p>
+                <p>Features: Red nucleus, green electrons, orbital rings</p>
+                <a href="images/atom-simple.svg" download="atom-test-image.svg" class="download-btn">📥 Download SVG</a>
+                <button onclick="printImage('images/atom-simple.svg', 'Atom Structure')" class="download-btn">🖨️ Print Image</button>
+            </div>
+
+            <!-- Water Molecule Image -->
+            <div class="image-card">
+                <h2>💧 Water Molecule (H₂O)</h2>
+                <img src="images/water-simple.svg" alt="Water Molecule Test Image" class="test-image">
+                <p><strong>Use this image to spawn the 3D Water Molecule model</strong></p>
+                <p>Features: Red oxygen, white hydrogen atoms, covalent bonds</p>
+                <a href="images/water-simple.svg" download="water-molecule-test-image.svg" class="download-btn">📥 Download SVG</a>
+                <button onclick="printImage('images/water-simple.svg', 'Water Molecule')" class="download-btn">🖨️ Print Image</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 How to Use These Test Images</h3>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Download or Print:</strong> Save the images above or print them on paper
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Display Method:</strong> 
+                <ul style="margin: 10px 0; padding-left: 50px;">
+                    <li>Display on another phone/tablet screen</li>
+                    <li>Print on white paper (recommended)</li>
+                    <li>Show on computer monitor</li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Lighting:</strong> Ensure good, even lighting on the test image (avoid shadows)
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>Distance:</strong> Hold your camera 6-12 inches (15-30 cm) from the image
+            </div>
+            
+            <div class="step">
+                <span class="step-number">5</span>
+                <strong>Stability:</strong> Keep the image steady and the camera stable for 2-3 seconds
+            </div>
+            
+            <div class="step">
+                <span class="step-number">6</span>
+                <strong>Recognition:</strong> Look for the success message and 3D model appearing
+            </div>
+            
+            <div class="step">
+                <span class="step-number">7</span>
+                <strong>Switch Models:</strong> Point at the other image to change 3D models
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="/" class="download-btn" style="font-size: 18px; padding: 15px 30px;">
+                🚀 Start AR Testing
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function printImage(imageSrc, title) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print ${title}</title>
+                        <style>
+                            body { margin: 0; padding: 20px; text-align: center; }
+                            img { max-width: 100%; height: auto; }
+                            h1 { font-family: Arial, sans-serif; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${title} - AR Test Image</h1>
+                        <img src="${imageSrc}" alt="${title}">
+                        <p>Use this printed image to test AR recognition</p>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+    </script>
+</body>
+</html>
