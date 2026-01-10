@@ -97,6 +97,7 @@ class SimpleARApp {
             
             this.isStarted = true;
             this.showTemporaryMessage('📸 Camera started! Point at test images to spawn 3D models');
+            this.createStatusDisplay();
             
             console.log('✅ AR started successfully');
             
@@ -203,6 +204,19 @@ class SimpleARApp {
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
+        
+        // Keyboard shortcuts for testing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '1') {
+                console.log('⌨️ Keyboard shortcut: Spawning Atom');
+                this.onImageDetected('atom');
+            } else if (e.key === '2') {
+                console.log('⌨️ Keyboard shortcut: Spawning Water Molecule');
+                this.onImageDetected('molecule');
+            } else if (e.key === 'd' || e.key === 'D') {
+                this.toggleDebugMode();
+            }
+        });
     }
 
     setupControls() {
@@ -215,6 +229,110 @@ class SimpleARApp {
         if (scaleUpBtn) scaleUpBtn.addEventListener('click', () => this.scaleModel(1.2));
         if (scaleDownBtn) scaleDownBtn.addEventListener('click', () => this.scaleModel(0.8));
         if (resetBtn) resetBtn.addEventListener('click', () => this.resetModel());
+        
+        // Add debug buttons
+        this.addDebugButtons();
+    }
+    
+    addDebugButtons() {
+        const debugContainer = document.createElement('div');
+        debugContainer.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1001;
+        `;
+        
+        // Test Atom Button
+        const testAtomBtn = document.createElement('button');
+        testAtomBtn.textContent = '🔬 Test Atom';
+        testAtomBtn.style.cssText = `
+            background: #ff3333;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        `;
+        testAtomBtn.addEventListener('click', () => {
+            console.log('🧪 Manual atom test');
+            this.onImageDetected('atom');
+        });
+        
+        // Test Molecule Button
+        const testMoleculeBtn = document.createElement('button');
+        testMoleculeBtn.textContent = '💧 Test H2O';
+        testMoleculeBtn.style.cssText = `
+            background: #3333ff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        `;
+        testMoleculeBtn.addEventListener('click', () => {
+            console.log('🧪 Manual molecule test');
+            this.onImageDetected('molecule');
+        });
+        
+        // Debug Info Button
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = '🐛 Debug';
+        debugBtn.style.cssText = `
+            background: #666;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        `;
+        debugBtn.addEventListener('click', () => this.toggleDebugMode());
+        
+        debugContainer.appendChild(testAtomBtn);
+        debugContainer.appendChild(testMoleculeBtn);
+        debugContainer.appendChild(debugBtn);
+        document.body.appendChild(debugContainer);
+    }
+    
+    toggleDebugMode() {
+        this.debugMode = !this.debugMode;
+        console.log(`🐛 Debug mode: ${this.debugMode ? 'ON' : 'OFF'}`);
+        
+        if (this.debugMode) {
+            this.showDebugCanvas();
+        } else {
+            this.hideDebugCanvas();
+        }
+    }
+    
+    showDebugCanvas() {
+        if (!this.debugCanvas) {
+            this.debugCanvas = document.createElement('canvas');
+            this.debugCanvas.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                width: 200px;
+                height: 150px;
+                border: 2px solid #fff;
+                z-index: 1000;
+                background: black;
+            `;
+            document.body.appendChild(this.debugCanvas);
+        }
+        this.debugCanvas.style.display = 'block';
+    }
+    
+    hideDebugCanvas() {
+        if (this.debugCanvas) {
+            this.debugCanvas.style.display = 'none';
+        }
     }
 
     startDetection() {
@@ -249,6 +367,12 @@ class SimpleARApp {
         // Draw current frame
         this.detectionContext.drawImage(this.video, 0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
 
+        // Show debug canvas if enabled
+        if (this.debugMode && this.debugCanvas) {
+            const debugCtx = this.debugCanvas.getContext('2d');
+            debugCtx.drawImage(this.video, 0, 0, 200, 150);
+        }
+
         // Get image data
         const imageData = this.detectionContext.getImageData(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
         const detected = this.analyzeImageColors(imageData);
@@ -260,33 +384,43 @@ class SimpleARApp {
 
     analyzeImageColors(imageData) {
         const data = imageData.data;
-        let redPixels = 0, greenPixels = 0, whitePixels = 0, blackPixels = 0;
+        let redPixels = 0, greenPixels = 0, whitePixels = 0, blackPixels = 0, bluePixels = 0;
+        let totalPixels = 0;
         
         // Sample every 16th pixel for performance
-        for (let i = 0; i < data.length; i += 64) { // Increased sampling for better performance
+        for (let i = 0; i < data.length; i += 64) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
+            totalPixels++;
             
-            // Detect specific colors from our test images
-            if (r > 200 && g < 100 && b < 100) redPixels++; // Red (nucleus/oxygen)
-            if (r < 150 && g > 200 && b < 150) greenPixels++; // Green (electrons)
-            if (r > 200 && g > 200 && b > 200) whitePixels++; // White (hydrogen)
-            if (r < 80 && g < 80 && b < 80) blackPixels++; // Black (borders/text)
+            // More flexible color detection
+            if (r > 150 && g < 120 && b < 120) redPixels++; // Red (more flexible)
+            if (r < 120 && g > 150 && b < 120) greenPixels++; // Green (more flexible)
+            if (r > 180 && g > 180 && b > 180) whitePixels++; // White
+            if (r < 100 && g < 100 && b < 100) blackPixels++; // Black
+            if (r < 120 && g < 120 && b > 150) bluePixels++; // Blue
         }
         
-        const threshold = 20; // Lowered threshold for easier detection
+        const threshold = 10; // Even lower threshold
+        const percentage = (pixels) => (pixels / totalPixels) * 100;
         
-        console.log(`Color analysis: Red=${redPixels}, Green=${greenPixels}, White=${whitePixels}, Black=${blackPixels}`);
+        console.log(`Color analysis: Red=${redPixels}(${percentage(redPixels).toFixed(1)}%), Green=${greenPixels}(${percentage(greenPixels).toFixed(1)}%), White=${whitePixels}(${percentage(whitePixels).toFixed(1)}%), Black=${blackPixels}(${percentage(blackPixels).toFixed(1)}%), Blue=${bluePixels}(${percentage(bluePixels).toFixed(1)}%)`);
         
-        // Atom detection: Red nucleus + Green electrons + Black borders
-        if (redPixels > threshold && greenPixels > threshold/2 && blackPixels > threshold) {
-            return { target: 'atom', confidence: redPixels + greenPixels };
+        // More flexible detection logic
+        if (redPixels > threshold && blackPixels > threshold) {
+            if (greenPixels > threshold/2) {
+                console.log('🎯 ATOM detected - Red + Green + Black pattern');
+                return { target: 'atom', confidence: redPixels + greenPixels };
+            } else if (whitePixels > threshold) {
+                console.log('🎯 MOLECULE detected - Red + White + Black pattern');
+                return { target: 'molecule', confidence: redPixels + whitePixels };
+            }
         }
         
-        // Water molecule detection: Red oxygen + White hydrogen + Black borders
-        if (redPixels > threshold && whitePixels > threshold && blackPixels > threshold && greenPixels < threshold/2) {
-            return { target: 'molecule', confidence: redPixels + whitePixels };
+        // Fallback: Any significant color pattern
+        if (redPixels > threshold/2 || greenPixels > threshold/2 || bluePixels > threshold/2) {
+            console.log('🔍 Pattern detected but not classified');
         }
         
         return { target: null };
@@ -300,6 +434,7 @@ class SimpleARApp {
         }
         
         console.log(`🎯 Image detected: ${imageId}`);
+        this.updateStatus(`${imageId} detected at ${new Date().toLocaleTimeString()}`);
 
         // Remove current model
         if (this.currentModel) {
@@ -605,6 +740,40 @@ class SimpleARApp {
             </button>
         `;
         document.body.appendChild(errorDiv);
+    }
+    
+    createStatusDisplay() {
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'statusDisplay';
+        statusDiv.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+        `;
+        statusDiv.innerHTML = `
+            <div>🔍 Detection: Active</div>
+            <div>📹 Camera: ${this.video ? 'Ready' : 'Not Ready'}</div>
+            <div>🎯 Last Detection: None</div>
+            <div>⌨️ Press 1=Atom, 2=Water, D=Debug</div>
+        `;
+        document.body.appendChild(statusDiv);
+        
+        this.statusDiv = statusDiv;
+    }
+    
+    updateStatus(message) {
+        if (this.statusDiv) {
+            const lines = this.statusDiv.innerHTML.split('<div>');
+            lines[3] = `🎯 Last Detection: ${message}</div>`;
+            this.statusDiv.innerHTML = lines.join('<div>');
+        }
     }
 
     dispose() {
