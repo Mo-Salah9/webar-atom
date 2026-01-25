@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebVR Atom Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .vr-button {
+            background: linear-gradient(45deg, #f31e1e, #4ECDC4);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: all;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .vr-button:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+        }
+
+        .vr-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            pointer-events: all;
+            max-width: 400px;
+        }
+
+        .instructions h3 {
+            margin: 0 0 15px 0;
+            color: #4ECDC4;
+        }
+
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            pointer-events: all;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .edu-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            color: #222;
+            padding: 16px 18px;
+            border-radius: 12px;
+            pointer-events: all;
+            max-width: 480px;
+            margin-left: auto;
+            direction: rtl;
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .edu-panel h3 {
+            margin: 0 0 10px 0;
+            color: #764ba2;
+            font-size: 18px;
+        }
+
+        .edu-panel p { margin: 6px 0; }
+
+        .scene-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            pointer-events: all;
+        }
+
+        .scene-btn {
+            background: #111;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .scene-indicator {
+            background: rgba(255,255,255,0.85);
+            color: #222;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .challenge-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(90vw, 480px);
+            background: rgba(255,255,255,0.96);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            pointer-events: all;
+            direction: rtl;
+        }
+
+        .challenge-instructions {
+            margin: 15px 0;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        .color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .color-indicator.proton {
+            background: #ff3333;
+        }
+
+        .color-indicator.neutron {
+            background: #6699ff;
+        }
+
+        .color-indicator.electron {
+            background: #00ff66;
+        }
+
+        .challenge-status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .challenge-status p {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .drag-cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .drag-card {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .drag-card:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .drag-card:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .drag-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .particle-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .particle-icon.proton {
+            background: #ff3333;
+        }
+
+        .particle-icon.neutron {
+            background: #6699ff;
+        }
+
+        .particle-icon.electron {
+            background: #00ff66;
+        }
+
+        .drag-card span {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Quiz Page Styles */
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+           
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .quiz-header h3 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .quiz-header p {
+            color: #666;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .quiz-content {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-direction: row;
+        }
+
+        .atom-diagram-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .atom-diagram {
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+
+        .atom-image {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            position: relative;
+            left: 50px;
+        }
+
+        .drop-slot {
+            position: absolute;
+            width: 100px;
+            height: 50px;
+            border: 2px dashed #999;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .drop-slot.drag-over {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+
+        .drop-slot.correct {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+
+        .drop-slot.incorrect {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        .drop-slot.hover-highlight {
+            border-color: #2196F3;
+            background: rgba(33, 150, 243, 0.1);
+            transform: scale(1.05);
+        }
+
+        .slot-1 {
+            top: 40px;
+            right: 90px;
+        }
+
+        .slot-2 {
+            bottom: 60px;
+            left: 5px;
+        }
+
+        .slot-3 {
+            bottom: 60px;
+            right: 75px;
+        }
+
+        .slot-content {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .answer-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 50px;
+            margin-left: 100px;
+        }
+
+        .answer-card {
+            width: 120px;
+            height: 50px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            user-select: none;
+            position: relative;
+        }
+
+        .answer-card::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .answer-card[data-answer="electron"]::before {
+            background: #00ff66;
+        }
+
+        .answer-card[data-answer="proton"]::before {
+            background: #ff3333;
+        }
+
+        .answer-card[data-answer="neutron"]::before {
+            background: #6699ff;
+        }
+
+        .answer-card:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .answer-card:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .answer-card.selected {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .answer-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+        }
+
+        .answer-card span {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+            margin-left: 15px;
+        }
+
+        .quiz-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .quiz-status p {
+            margin: 0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .instructions {
+                font-size: 14px;
+                padding: 15px;
+            }
+            
+            .vr-button {
+                font-size: 16px;
+                padding: 12px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="ui-overlay">
+        <div class="instructions" id="instructions">
+            <h3>🚀 WebVR Atom Visualizer</h3>
+            <ul>
+                <li>🥽 Put on your VR headset</li>
+                <li>🎯 The atom will appear in front of you</li>
+                <li>🎮 Use VR controllers to interact</li>
+                <li>📏 Squeeze controllers to scale</li>
+                <li>🔄 Grab and move the atom around</li>
+            </ul>
+        </div>
+
+        <div class="edu-panel hidden" id="eduPanel"></div>
+        
+        <div class="controls hidden" id="controls">
+            <button class="control-btn" id="scaleUp" title="Scale Up">+</button>
+            <button class="control-btn" id="scaleDown" title="Scale Down">-</button>
+            <button class="control-btn" id="reset" title="Reset">⟲</button>
+        </div>
+        
+        <button class="vr-button" id="vrButton">Enter VR Experience</button>
+
+        <div class="scene-footer hidden" id="sceneFooter">
+            <div class="scene-indicator" id="sceneIndicator">المشهد ١ / ٦</div>
+            <div>
+                <button class="scene-btn" id="prevScene">السابق</button>
+                <button class="scene-btn" id="nextScene">التالي</button>
+            </div>
+        </div>
+
+        <div class="challenge-overlay hidden" id="challengeOverlay">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                </div>
+                
+                <div class="quiz-content">
+                    <div class="atom-diagram-container">
+                        <div class="atom-diagram">
+                            <img src="images/chart__1_-removebg-preview.png" alt="Atom Diagram" class="atom-image">
+                        </div>
+                        
+                        <div class="drop-slot slot-1" data-target="neutron">
+                            <div class="slot-content"></div>
+                        </div>
+                        <div class="drop-slot slot-2" data-target="proton">
+                            <div class="slot-content"></div>
+                        </div>
+                        <div class="drop-slot slot-3" data-target="electron">
+                            <div class="slot-content"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="answer-cards">
+                        <div class="answer-card" data-answer="electron">
+                            <span>إلكترونات</span>
+                        </div>
+                        <div class="answer-card" data-answer="proton">
+                            <span>بروتونات</span>
+                        </div>
+                        <div class="answer-card" data-answer="neutron">
+                            <span>نيوترونات</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quiz-status">
+                    <p id="quizStatus">ابدأ بسحب الإجابات إلى أماكنها الصحيحة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/webxr-polyfill.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
