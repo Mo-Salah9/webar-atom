@@ -209,7 +209,7 @@ class WebFPAtomApp {
             // Position atom at center
             const atomGroup = this.atom.getGroup();
             atomGroup.position.set(0, 0, 0);
-            atomGroup.scale.setScalar(1.5); // Make it slightly bigger for better visibility
+            atomGroup.scale.setScalar(0.7); // Smaller scale for better mobile viewing
             
             this.scene.add(atomGroup);
             console.log('Atom added to scene', atomGroup);

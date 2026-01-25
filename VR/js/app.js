@@ -198,13 +198,13 @@ class WebVRAtomApp {
         this.renderer.xr.addEventListener('sessionstart', () => {
             console.log('🚀 VR session started');
             this.isVRActive = true;
-            this.hideInstructions();
+            // Instructions removed
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
             console.log('🛑 VR session ended');
             this.isVRActive = false;
-            this.showInstructions();
+            // Instructions removed
         });
     }
 

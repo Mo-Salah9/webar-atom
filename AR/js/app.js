@@ -135,14 +135,14 @@ class WebARAtomApp {
         this.renderer.xr.addEventListener('sessionstart', () => {
             console.log('🚀 AR session started');
             this.isARActive = true;
-            this.hideInstructions();
+            // Instructions removed
             this.placeAtom();
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
             console.log('🛑 AR session ended');
             this.isARActive = false;
-            this.showInstructions();
+            // Instructions removed
             // Remove atom when AR session ends
             if (this.atom) {
                 this.scene.remove(this.atom.getGroup());
