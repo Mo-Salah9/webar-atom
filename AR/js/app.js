@@ -317,10 +317,7 @@ class WebARAtomApp {
         const panel = document.getElementById('eduPanel');
         if (!panel) return;
 
-        // Clear any existing highlights first
-        if (this.atom && this.atom.clearHighlights) {
-            this.atom.clearHighlights();
-        }
+        // Highlighting disabled - no clearHighlights call
 
         if (part === 'nucleus') {
             panel.innerHTML = `
@@ -328,23 +325,14 @@ class WebARAtomApp {
                 <p>هنا تقع البروتونات والنيوترونات في مركز الذرّة.</p>
                 <p>البروتونات موجبة الشحنة والنيوترونات متعادلة، وتشكلان معًا معظم كتلة الذرّة.</p>
             `;
-            if (this.atom && this.atom.highlightKind) {
-                this.atom.highlightKind('proton');
-                setTimeout(() => {
-                    if (this.atom && this.atom.highlightKind) {
-                        this.atom.highlightKind('neutron');
-                    }
-                }, 100);
-            }
+            // Highlighting disabled - no highlightKind call
         } else if (part === 'electron' || part === 'orbit') {
             panel.innerHTML = `
                 <h3>الإلكترونات</h3>
                 <p>الإلكترونات تدور حول النواة في مستويات طاقة مختلفة.</p>
                 <p>تتحرك بسرعة كبيرة وتشكل السحابة الإلكترونية حول النواة.</p>
             `;
-            if (this.atom && this.atom.highlightKind) {
-                this.atom.highlightKind('electron');
-            }
+            // Highlighting disabled - no highlightKind call
         } else {
             panel.innerHTML = `
                 <h3>معلومات تعليمية</h3>

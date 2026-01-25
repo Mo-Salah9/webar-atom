@@ -132,22 +132,15 @@ export class InteractionManager {
             const { x, y } = this.activePointers.get(event.pointerId);
             const intersections = this.raycastFromScreen(x, y);
             if (intersections.length > 0) {
-                // Fade others and notify listeners (only in Scene 1)
+                // Highlighting disabled - no fadeExcept call
                 const clickedObject = intersections[0].object;
-                if (this.atom.fadeExcept && this._shouldAllowInteraction()) {
-                    this.atom.fadeExcept(clickedObject, 0.1);
-                }
                 this._emit('selectPart', this._resolvePart(clickedObject));
                 this.isTouchRotating = true;
                 this.initialTouchX = x;
                 this.initialRotationY = this.atom.getRotationY ? this.atom.getRotationY() : this.atom.getGroup().rotation.y;
                 this.isTouchGrabbing = false; // disable move
-            } else {
-                // Tap empty space restores opacity (only in Scene 1)
-                if (this.atom.restoreOpacity && this._shouldAllowInteraction()) {
-                    this.atom.restoreOpacity();
-                }
             }
+            // Highlighting disabled - no restoreOpacity call
         } else if (this.activePointers.size === 2) {
             // Start pinch scaling
             const points = Array.from(this.activePointers.values());
@@ -217,17 +210,10 @@ export class InteractionManager {
                 const intersections = this.raycastFromScreen(upPos.x, upPos.y);
                 if (intersections.length > 0) {
                     const clickedObject = intersections[0].object;
-                    // Only apply fading in Scene 1 (interactive exploration)
-                    if (this.atom.fadeExcept && this._shouldAllowInteraction()) {
-                        this.atom.fadeExcept(clickedObject, 0.1);
-                    }
+                    // Highlighting disabled - no fadeExcept call
                     this._emit('selectPart', this._resolvePart(clickedObject));
-                } else {
-                    // Only restore opacity in Scene 1
-                    if (this.atom.restoreOpacity && this._shouldAllowInteraction()) {
-                        this.atom.restoreOpacity();
-                    }
                 }
+                // Highlighting disabled - no restoreOpacity call
             }
         }
 
