@@ -21,6 +21,10 @@ class WebFPAtomApp {
         this.clock = new THREE.Clock();
         this.frameCount = 0;
         
+        // Background slow rotation (reused each frame)
+        this._bgSlowAxis = new THREE.Vector3(0, 1, 0);
+        this._bgSlowQuat = new THREE.Quaternion();
+        this._bgSlowSpeed = 0.025; // rad/sec
         this.init();
     }
 
@@ -306,6 +310,13 @@ class WebFPAtomApp {
         // Update controls
         if (this.controls) {
             this.controls.update();
+        }
+        
+        // Starfield: fixed to view (no orbit rotation) + slow independent rotation
+        if (this.starfield && this.camera) {
+            this.starfield.quaternion.copy(this.camera.quaternion);
+            this._bgSlowQuat.setFromAxisAngle(this._bgSlowAxis, this.clock.getElapsedTime() * this._bgSlowSpeed);
+            this.starfield.quaternion.multiply(this._bgSlowQuat);
         }
         
         // Update atom animation
