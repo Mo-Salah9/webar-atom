@@ -19,6 +19,11 @@ class WebARAtomApp {
         this.isARActive = false;
         this.atomPlaced = false;
         
+        // Hit-test for surface detection
+        this.hitTestSource = null;
+        this.hitTestSourceRequested = false;
+        this.reticle = null;
+        
         // Performance
         this.clock = new THREE.Clock();
         this.frameCount = 0;
@@ -117,9 +122,10 @@ class WebARAtomApp {
             existingButton.remove();
         }
 
-        // Create new AR button with Three.js ARButton
+        // Create new AR button with hit-test required for surface detection
         const arButton = ARButton.createButton(this.renderer, {
-            optionalFeatures: ['dom-overlay', 'hit-test'],
+            requiredFeatures: ['hit-test'],
+            optionalFeatures: ['dom-overlay'],
             domOverlay: { root: document.querySelector('.ui-overlay') }
         });
 
@@ -135,14 +141,20 @@ class WebARAtomApp {
         this.renderer.xr.addEventListener('sessionstart', () => {
             console.log('🚀 AR session started');
             this.isARActive = true;
-            // Instructions removed
-            this.placeAtom();
+            // Don't place atom yet - wait for user to tap on a surface
+            this.createReticle();
         });
 
         this.renderer.xr.addEventListener('sessionend', () => {
             console.log('🛑 AR session ended');
             this.isARActive = false;
-            // Instructions removed
+            this.hitTestSourceRequested = false;
+            this.hitTestSource = null;
+            // Remove reticle
+            if (this.reticle) {
+                this.scene.remove(this.reticle);
+                this.reticle = null;
+            }
             // Remove atom when AR session ends
             if (this.atom) {
                 this.scene.remove(this.atom.getGroup());
@@ -150,6 +162,21 @@ class WebARAtomApp {
                 this.atomPlaced = false;
             }
         });
+    }
+    
+    createReticle() {
+        // Reticle shows where the atom will be placed (surface indicator)
+        const geometry = new THREE.RingGeometry(0.08, 0.12, 32).rotateX(-Math.PI / 2);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+        this.reticle = new THREE.Mesh(geometry, material);
+        this.reticle.matrixAutoUpdate = false;
+        this.reticle.visible = false;
+        this.scene.add(this.reticle);
     }
 
     setupInteractions() {
@@ -159,10 +186,14 @@ class WebARAtomApp {
             this.camera
         );
 
-        // Setup controller select events for AR interactions
-        const controllers = this.renderer.xr.getController(0);
-        controllers.addEventListener('select', () => this.onARSelect());
-        this.scene.add(controllers);
+        // Setup controller select events - tap to place atom on surface
+        const controller1 = this.renderer.xr.getController(0);
+        controller1.addEventListener('select', () => this.onARSelect());
+        this.scene.add(controller1);
+        
+        const controller2 = this.renderer.xr.getController(1);
+        controller2.addEventListener('select', () => this.onARSelect());
+        this.scene.add(controller2);
 
         // Listen for part selection to update UI text
         this.interactionManager.on('selectPart', (part) => {
@@ -183,24 +214,32 @@ class WebARAtomApp {
     }
 
     onARSelect() {
-        // AR interactions handled by InteractionManager
-        console.log('AR controller select event');
+        // If reticle is visible (surface detected) and atom not placed yet, place atom on surface
+        if (!this.atomPlaced && this.reticle && this.reticle.visible) {
+            this.placeAtomOnSurface();
+        } else if (this.atomPlaced) {
+            // Atom already placed - interaction handled by InteractionManager
+            console.log('AR controller select (interaction)');
+        }
     }
 
-    placeAtom() {
-        if (this.atomPlaced) return;
+    placeAtomOnSurface() {
+        if (this.atomPlaced || !this.reticle) return;
         
-        console.log('🎯 Placing atom in AR');
+        console.log('🎯 Placing atom on detected surface');
         
         // Create atom model
         this.atom = new AtomModel();
-        
-        // Position atom in front of camera in AR space
         const atomGroup = this.atom.getGroup();
-        atomGroup.position.set(0, 0, -1.5); // In front of user
+        
+        // Position and orient atom at reticle (surface hit) position
+        this.reticle.matrix.decompose(atomGroup.position, atomGroup.quaternion, atomGroup.scale);
         atomGroup.scale.setScalar(0.8); // Slightly smaller for AR
         
         this.scene.add(atomGroup);
+        
+        // Hide reticle after placement
+        this.reticle.visible = false;
         
         // Setup interactions
         this.interactionManager.setAtom(this.atom);
@@ -219,12 +258,18 @@ class WebARAtomApp {
             `;
         }
         
-        console.log('✅ Atom placed successfully in AR');
+        console.log('✅ Atom placed successfully on surface');
 
         // Show scene footer controls now
         const footer = document.getElementById('sceneFooter');
         if (footer) footer.classList.remove('hidden');
         this.gotoScene(0);
+    }
+
+    placeAtom() {
+        // Legacy: place in front of camera if no surface (fallback not used when hit-test is required)
+        if (this.atomPlaced) return;
+        this.placeAtomOnSurface();
     }
 
     onWindowResize() {
@@ -241,6 +286,39 @@ class WebARAtomApp {
 
     render(timestamp, frame) {
         const deltaTime = this.clock.getDelta();
+        
+        // Surface detection: request hit-test source and update reticle
+        if (frame) {
+            const referenceSpace = this.renderer.xr.getReferenceSpace();
+            const session = this.renderer.xr.getSession();
+            
+            if (session && !this.hitTestSourceRequested) {
+                session.requestReferenceSpace('viewer').then((refSpace) => {
+                    return session.requestHitTestSource({ space: refSpace });
+                }).then((source) => {
+                    this.hitTestSource = source;
+                }).catch((err) => {
+                    console.warn('Hit-test not available:', err);
+                });
+                session.addEventListener('end', () => {
+                    this.hitTestSourceRequested = false;
+                    this.hitTestSource = null;
+                });
+                this.hitTestSourceRequested = true;
+            }
+            
+            // Update reticle position from hit-test (only when atom not yet placed)
+            if (this.hitTestSource && this.reticle && !this.atomPlaced) {
+                const hitTestResults = frame.getHitTestResults(this.hitTestSource);
+                if (hitTestResults.length > 0) {
+                    const hit = hitTestResults[0];
+                    this.reticle.visible = true;
+                    this.reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                } else {
+                    this.reticle.visible = false;
+                }
+            }
+        }
         
         // Update atom animation
         if (this.atom) {
