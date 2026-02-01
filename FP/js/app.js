@@ -346,8 +346,9 @@ class WebFPAtomApp {
     updateSceneIndicator() {
         const ind = document.getElementById('sceneIndicator');
         if (!ind) return;
-        const human = this.sceneIndex + 1;
-        ind.textContent = `المشهد ${human} / ٦`;
+        const current = this.sceneIndex + 1;
+        const total = 6;
+        ind.textContent = `${current}/${total}`;
     }
 
     gotoScene(index) {
