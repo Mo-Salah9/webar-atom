@@ -59,9 +59,53 @@ class WebFPAtomApp {
 
     createScene() {
         this.scene = new THREE.Scene();
-        // Set a gradient background for PC/mobile
-        this.scene.background = new THREE.Color(0x1a1a2e);
-        console.log('Scene created with background color');
+        this.scene.background = this.createSceneBackground();
+        this.createStarfield();
+        console.log('Scene created with background');
+    }
+
+    createSceneBackground() {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(size * 0.5, size * 0.3, 0, size * 0.5, size * 0.5, size * 0.8);
+        gradient.addColorStop(0, '#2d1b4e');
+        gradient.addColorStop(0.35, '#1a1a3e');
+        gradient.addColorStop(0.6, '#0f2744');
+        gradient.addColorStop(1, '#050814');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    createStarfield() {
+        const starCount = 400;
+        const stars = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            const radius = 8 + Math.random() * 6;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            stars[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+            stars[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            stars[i * 3 + 2] = radius * Math.cos(phi);
+        }
+        const starGeometry = new THREE.BufferGeometry();
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(stars, 3));
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.08,
+            transparent: true,
+            opacity: 0.85,
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        this.starfield = new THREE.Points(starGeometry, starMaterial);
+        this.scene.add(this.starfield);
     }
 
     createCamera() {
